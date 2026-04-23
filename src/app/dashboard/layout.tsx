@@ -140,6 +140,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {children}
         </main>
       </div>
+
+      <style>{`
+        a[href^="/dashboard"]:hover {
+          background: #F5F5F4 !important;
+          color: #1C1917 !important;
+        }
+      `}</style>
     </div>
   );
 }
@@ -156,16 +163,7 @@ function NavLink({ href, icon, label }: { href: string; icon: string; label: str
       fontWeight: 500,
       color: "#57534E",
       textDecoration: "none",
-    }}
-    onMouseEnter={e => {
-      (e.currentTarget as HTMLElement).style.background = "#F5F5F4";
-      (e.currentTarget as HTMLElement).style.color = "#1C1917";
-    }}
-    onMouseLeave={e => {
-      (e.currentTarget as HTMLElement).style.background = "transparent";
-      (e.currentTarget as HTMLElement).style.color = "#57534E";
-    }}
-    >
+    }}>
       <span style={{ fontSize: 14, width: 16, textAlign: "center", flexShrink: 0 }}>{icon}</span>
       {label}
     </Link>
