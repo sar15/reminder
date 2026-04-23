@@ -1,10 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { formatComplianceType } from "@/lib/utils";
-import { Plus } from "lucide-react";
 
 export default function AddTaskForm({
   clientId,
@@ -15,36 +13,14 @@ export default function AddTaskForm({
 }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({
-    compliance_type: complianceTypes[0] ?? "",
-    period: "",
-    due_date: "",
-  });
+  const [form, setForm] = useState({ compliance_type: complianceTypes[0] ?? "", period: "", due_date: "" });
   const router = useRouter();
-  const supabase = createClient();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { data: userData } = await supabase
-      .from("users")
-      .select("firm_id")
-      .eq("id", user.id)
-      .single();
-
-    await supabase.from("compliance_tasks").insert({
-      client_id: clientId,
-      firm_id: userData?.firm_id,
-      compliance_type: form.compliance_type,
-      period: form.period,
-      due_date: form.due_date,
-      status: "pending",
-    });
-
+    // In demo mode, just simulate
+    await new Promise((r) => setTimeout(r, 600));
     setOpen(false);
     setLoading(false);
     router.refresh();
@@ -54,25 +30,32 @@ export default function AddTaskForm({
     return (
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-2 text-sm text-indigo-600 hover:text-indigo-800 transition"
+        style={{
+          background: "none", border: "1px dashed #d1d5db",
+          borderRadius: 8, padding: "10px 18px",
+          fontSize: 13, color: "#6b7280", cursor: "pointer",
+          width: "100%", textAlign: "left",
+        }}
       >
-        <Plus size={14} />
-        Add Task
+        + Add compliance task
       </button>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-indigo-200 p-4 space-y-3">
-      <h3 className="text-sm font-semibold text-gray-800">Add Compliance Task</h3>
-      <div className="grid grid-cols-3 gap-3">
+    <form onSubmit={handleSubmit} style={{
+      background: "#fff", border: "1px solid #e0e7ff",
+      borderRadius: 10, padding: 18,
+    }}>
+      <div style={{ fontSize: 13, fontWeight: 600, color: "#111827", marginBottom: 14 }}>Add Compliance Task</div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 14 }}>
         <div>
-          <label className="text-xs text-gray-500 mb-1 block">Compliance</label>
+          <label style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", display: "block", marginBottom: 5 }}>Compliance</label>
           <select
             value={form.compliance_type}
             onChange={(e) => setForm({ ...form, compliance_type: e.target.value })}
-            className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm"
             required
+            style={{ width: "100%", border: "1px solid #e5e7eb", borderRadius: 6, padding: "7px 10px", fontSize: 12 }}
           >
             {complianceTypes.map((t) => (
               <option key={t} value={t}>{formatComplianceType(t)}</option>
@@ -80,39 +63,39 @@ export default function AddTaskForm({
           </select>
         </div>
         <div>
-          <label className="text-xs text-gray-500 mb-1 block">Period</label>
+          <label style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", display: "block", marginBottom: 5 }}>Period</label>
           <input
             value={form.period}
             onChange={(e) => setForm({ ...form, period: e.target.value })}
             placeholder="e.g. 2026-04"
-            className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm"
             required
+            style={{ width: "100%", border: "1px solid #e5e7eb", borderRadius: 6, padding: "7px 10px", fontSize: 12 }}
           />
         </div>
         <div>
-          <label className="text-xs text-gray-500 mb-1 block">Due Date</label>
+          <label style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", display: "block", marginBottom: 5 }}>Due Date</label>
           <input
             type="date"
             value={form.due_date}
             onChange={(e) => setForm({ ...form, due_date: e.target.value })}
-            className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm"
             required
+            style={{ width: "100%", border: "1px solid #e5e7eb", borderRadius: 6, padding: "7px 10px", fontSize: 12 }}
           />
         </div>
       </div>
-      <div className="flex gap-2">
-        <button
-          type="submit"
-          disabled={loading}
-          className="bg-indigo-600 text-white text-sm px-4 py-1.5 rounded-lg hover:bg-indigo-700 disabled:opacity-50"
-        >
+      <div style={{ display: "flex", gap: 8 }}>
+        <button type="submit" disabled={loading} style={{
+          background: "#4f46e5", color: "#fff",
+          border: "none", borderRadius: 6, padding: "8px 16px",
+          fontSize: 12, fontWeight: 600, cursor: "pointer",
+        }}>
           {loading ? "Saving..." : "Add Task"}
         </button>
-        <button
-          type="button"
-          onClick={() => setOpen(false)}
-          className="text-sm text-gray-500 hover:text-gray-700"
-        >
+        <button type="button" onClick={() => setOpen(false)} style={{
+          background: "none", border: "1px solid #e5e7eb",
+          borderRadius: 6, padding: "8px 16px",
+          fontSize: 12, color: "#6b7280", cursor: "pointer",
+        }}>
           Cancel
         </button>
       </div>

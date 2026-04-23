@@ -1,7 +1,6 @@
 import { getClients, getAllTasks } from "@/lib/data";
 import { getRiskLevel } from "@/lib/utils";
 import Link from "next/link";
-import { Shield, ArrowRight, Download } from "lucide-react";
 
 export default async function ReportsPage() {
   const [clients, tasks] = await Promise.all([getClients(), getAllTasks()]);
@@ -15,79 +14,90 @@ export default async function ReportsPage() {
   const enriched = clients.map((c) => {
     const all = tasksByClient[c.id] ?? [];
     const active = all.filter((t) => t.status !== "filed");
-    const reminderCount = 0; // would come from audit_log in real mode
-    return { ...c, riskLevel: getRiskLevel(active), taskCount: all.length, reminderCount };
+    return { ...c, riskLevel: getRiskLevel(active), taskCount: all.length };
   });
 
+  const riskDot  = { red: "#dc2626", yellow: "#d97706", green: "#059669" };
+  const riskText = { red: "#991b1b", yellow: "#92400e", green: "#166534" };
+  const riskBg   = { red: "#fef2f2", yellow: "#fffbeb", green: "#f0fdf4" };
+
   return (
-    <div className="p-6 space-y-5 max-w-4xl">
-      <div>
-        <h1 className="text-xl font-bold text-slate-900">Liability Reports</h1>
-        <p className="text-sm text-slate-500 mt-0.5">
-          Court-admissible proof of every client communication
-        </p>
+    <div style={{ padding: 28, maxWidth: 860 }}>
+      <div style={{ marginBottom: 24 }}>
+        <h1 style={{ fontSize: 20, fontWeight: 700, color: "#111827" }}>Liability Reports</h1>
+        <p style={{ fontSize: 13, color: "#6b7280", marginTop: 3 }}>Court-admissible proof of every client communication</p>
       </div>
 
       {/* What is this */}
-      <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-5 flex gap-4">
-        <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0">
-          <Shield size={20} className="text-white" />
-        </div>
+      <div style={{
+        background: "#f5f3ff", border: "1px solid #e0e7ff",
+        borderRadius: 10, padding: "16px 20px", marginBottom: 24,
+        display: "flex", gap: 14,
+      }}>
+        <span style={{ fontSize: 24, flexShrink: 0 }}>🛡️</span>
         <div>
-          <h3 className="text-sm font-semibold text-indigo-900">Your Legal Shield</h3>
-          <p className="text-xs text-indigo-700 mt-1 leading-relaxed">
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#4338ca", marginBottom: 6 }}>Your Legal Shield</div>
+          <div style={{ fontSize: 13, color: "#4f46e5", lineHeight: 1.6 }}>
             When a client blames you for a penalty, generate this report instantly. It shows every reminder sent,
             delivered, and opened — plus when documents were uploaded and returns were filed.
             Timestamped, immutable, and ready for ICAI proceedings.
-          </p>
+          </div>
         </div>
       </div>
 
       {/* Client list */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-5 py-3.5 border-b border-slate-100">
-          <h2 className="text-sm font-semibold text-slate-800">Select Client</h2>
+      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>
+        <div style={{ padding: "14px 18px", borderBottom: "1px solid #f3f4f6" }}>
+          <span style={{ fontSize: 14, fontWeight: 600, color: "#111827" }}>Select Client</span>
         </div>
-        <div className="divide-y divide-slate-100">
-          {enriched.map((client) => {
-            const riskDot = { red: "bg-red-500", yellow: "bg-amber-400", green: "bg-emerald-500" }[client.riskLevel];
-            return (
-              <div key={client.id} className="px-5 py-4 flex items-center justify-between hover:bg-slate-50 transition">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-indigo-100 flex items-center justify-center">
-                    <span className="text-sm font-bold text-indigo-600">{client.name.charAt(0)}</span>
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-semibold text-slate-800">{client.name}</p>
-                      <span className={`w-1.5 h-1.5 rounded-full ${riskDot}`} />
-                    </div>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      {client.pan ?? "No PAN"} · {client.taskCount} tasks
-                    </p>
-                  </div>
+        {enriched.map((client, i) => (
+          <div key={client.id} style={{
+            padding: "14px 18px",
+            borderBottom: i < enriched.length - 1 ? "1px solid #f3f4f6" : "none",
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+          }}
+          className="report-row"
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{
+                width: 36, height: 36, borderRadius: 8,
+                background: "#ede9fe",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 14, fontWeight: 700, color: "#4f46e5",
+              }}>
+                {client.name.charAt(0)}
+              </div>
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "#111827" }}>{client.name}</span>
+                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: riskDot[client.riskLevel] }} />
                 </div>
-                <div className="flex items-center gap-2">
-                  <Link
-                    href={`/api/reports/${client.id}/pdf`}
-                    className="flex items-center gap-1.5 border border-slate-200 text-slate-600 text-xs px-3 py-1.5 rounded-lg hover:bg-slate-50 transition"
-                  >
-                    <Download size={12} />
-                    PDF
-                  </Link>
-                  <Link
-                    href={`/dashboard/reports/${client.id}`}
-                    className="flex items-center gap-1.5 bg-indigo-600 text-white text-xs px-3 py-1.5 rounded-lg hover:bg-indigo-700 transition"
-                  >
-                    View Report
-                    <ArrowRight size={12} />
-                  </Link>
+                <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>
+                  {client.pan ?? "No PAN"} · {client.taskCount} tasks
                 </div>
               </div>
-            );
-          })}
-        </div>
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <Link href={`/api/reports/${client.id}/pdf`} style={{
+                border: "1px solid #e5e7eb", background: "#fff",
+                color: "#374151", padding: "7px 14px", borderRadius: 7,
+                fontSize: 12, fontWeight: 600, textDecoration: "none",
+              }}>
+                ↓ PDF
+              </Link>
+              <Link href={`/dashboard/reports/${client.id}`} style={{
+                background: "#4f46e5", color: "#fff",
+                padding: "7px 14px", borderRadius: 7,
+                fontSize: 12, fontWeight: 600, textDecoration: "none",
+              }}>
+                View Report →
+              </Link>
+            </div>
+          </div>
+        ))}
       </div>
+
+      <style>{`.report-row:hover { background: #fafafa; }`}</style>
     </div>
   );
 }

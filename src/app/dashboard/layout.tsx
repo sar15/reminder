@@ -1,111 +1,173 @@
 import Link from "next/link";
-import {
-  LayoutDashboard,
-  Users,
-  ClipboardList,
-  ShieldCheck,
-  Settings,
-  Bell,
-  ChevronRight,
-  Zap,
-} from "lucide-react";
+import { LayoutDashboard, Users, ListChecks, FileText, Settings, Shield } from "lucide-react";
+import PortalHealthBadge from "@/components/PortalHealthBadge";
 
-const NAV = [
-  { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/dashboard/clients", icon: Users, label: "Clients" },
-  { href: "/dashboard/tasks", icon: ClipboardList, label: "Tasks" },
-  { href: "/dashboard/reports", icon: ShieldCheck, label: "Liability Reports" },
+const NAV_ITEMS = [
+  { href: "/dashboard",          icon: LayoutDashboard, label: "Dashboard"         },
+  { href: "/dashboard/clients",  icon: Users,           label: "Clients"           },
+  { href: "/dashboard/tasks",    icon: ListChecks,      label: "Tasks"             },
+  { href: "/dashboard/reports",  icon: FileText,        label: "Liability Reports" },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50">
-      {/* ── Sidebar ── */}
-      <aside className="w-60 flex-shrink-0 bg-white border-r border-slate-200 flex flex-col">
+    <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
+
+      {/* ─── Sidebar ─── */}
+      <aside style={{
+        width: 220,
+        flexShrink: 0,
+        background: "#fff",
+        borderRight: "1px solid #e5e7eb",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+      }}>
+
         {/* Logo */}
-        <div className="px-5 py-5 border-b border-slate-100">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-              <ShieldCheck size={16} className="text-white" />
+        <div style={{ padding: "20px 20px 16px", borderBottom: "1px solid #f3f4f6" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{
+              width: 32, height: 32,
+              background: "#4f46e5",
+              borderRadius: 8,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              flexShrink: 0,
+            }}>
+              <Shield size={16} color="#fff" />
             </div>
             <div>
-              <p className="text-sm font-bold text-slate-900 leading-none">ComplianceShield</p>
-              <p className="text-[10px] text-slate-400 mt-0.5">CA Practice Platform</p>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#111827", lineHeight: 1.2 }}>
+                DeadlineShield
+              </div>
+              <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 1 }}>
+                CA Practice Platform
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Firm badge */}
-        <div className="px-4 py-3 border-b border-slate-100">
-          <div className="bg-indigo-50 rounded-lg px-3 py-2">
-            <p className="text-[10px] text-indigo-400 font-medium uppercase tracking-wide">Active Firm</p>
-            <p className="text-xs font-semibold text-indigo-700 mt-0.5">Demo CA Firm</p>
+        {/* Firm */}
+        <div style={{ padding: "12px 16px", borderBottom: "1px solid #f3f4f6" }}>
+          <div style={{
+            background: "#f5f3ff",
+            borderRadius: 8,
+            padding: "8px 12px",
+          }}>
+            <div style={{ fontSize: 10, color: "#7c3aed", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              Active Firm
+            </div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: "#4c1d95", marginTop: 2 }}>
+              Demo CA Firm
+            </div>
           </div>
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 px-3 py-4 space-y-0.5">
-          {NAV.map(({ href, icon: Icon, label }) => (
+        <nav style={{ flex: 1, padding: "12px 10px", display: "flex", flexDirection: "column", gap: 2 }}>
+          {NAV_ITEMS.map(({ href, icon: Icon, label }) => (
             <Link
               key={href}
               href={href}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors group"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                padding: "9px 12px",
+                borderRadius: 8,
+                fontSize: 13,
+                fontWeight: 500,
+                color: "#374151",
+                textDecoration: "none",
+              }}
+              className="nav-link"
             >
-              <Icon size={16} className="text-slate-400 group-hover:text-indigo-600 transition-colors" />
-              <span className="font-medium">{label}</span>
+              <Icon size={15} color="#6b7280" />
+              {label}
             </Link>
           ))}
         </nav>
 
-        {/* Bottom */}
-        <div className="px-3 py-4 border-t border-slate-100 space-y-0.5">
+        {/* Portal health + settings */}
+        <div style={{ padding: "12px 10px", borderTop: "1px solid #f3f4f6", display: "flex", flexDirection: "column", gap: 8 }}>
+          <PortalHealthBadge />
           <Link
             href="/dashboard/settings"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors group"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              padding: "9px 12px",
+              borderRadius: 8,
+              fontSize: 13,
+              fontWeight: 500,
+              color: "#374151",
+              textDecoration: "none",
+            }}
+            className="nav-link"
           >
-            <Settings size={16} className="text-slate-400 group-hover:text-indigo-600 transition-colors" />
-            <span className="font-medium">Settings</span>
+            <Settings size={15} color="#6b7280" />
+            Settings
           </Link>
-          {/* Portal health indicator */}
-          <div className="mt-3 px-3 py-2.5 rounded-lg bg-emerald-50 border border-emerald-100">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-[11px] font-medium text-emerald-700">GST Portal: Stable</span>
-            </div>
-            <p className="text-[10px] text-emerald-500 mt-0.5">Safe to file now</p>
-          </div>
         </div>
       </aside>
 
-      {/* ── Main ── */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      {/* ─── Main ─── */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+
         {/* Top bar */}
-        <header className="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-6 flex-shrink-0">
-          <div className="flex items-center gap-1 text-xs text-slate-400">
-            <span>ComplianceShield</span>
-            <ChevronRight size={12} />
-            <span className="text-slate-600 font-medium">Dashboard</span>
+        <header style={{
+          height: 52,
+          background: "#fff",
+          borderBottom: "1px solid #e5e7eb",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "0 24px",
+          flexShrink: 0,
+        }}>
+          <div style={{ fontSize: 12, color: "#9ca3af" }}>
+            {new Date().toLocaleDateString("en-IN", {
+              weekday: "long", day: "numeric", month: "long", year: "numeric",
+            })}
           </div>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 rounded-full px-3 py-1">
-              <Zap size={11} className="text-amber-500" />
-              <span className="text-[11px] font-medium text-amber-700">Demo Mode</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{
+              background: "#fef3c7",
+              border: "1px solid #fde68a",
+              borderRadius: 20,
+              padding: "3px 10px",
+              fontSize: 11,
+              fontWeight: 600,
+              color: "#92400e",
+            }}>
+              ⚡ Demo Mode
             </div>
-            <button className="relative w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center hover:bg-slate-200 transition">
-              <Bell size={15} className="text-slate-500" />
-              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full" />
-            </button>
-            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
-              <span className="text-white text-xs font-bold">CA</span>
+            <div style={{
+              width: 30, height: 30,
+              background: "#4f46e5",
+              borderRadius: 8,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 11, fontWeight: 700, color: "#fff",
+            }}>
+              CA
             </div>
           </div>
         </header>
 
-        {/* Page content */}
-        <main className="flex-1 overflow-y-auto">
+        {/* Page */}
+        <main style={{ flex: 1, overflowY: "auto", background: "#f9fafb" }}>
           {children}
         </main>
       </div>
+
+      <style>{`
+        .nav-link:hover {
+          background: #f9fafb;
+          color: #4f46e5 !important;
+        }
+        .nav-link:hover svg { color: #4f46e5 !important; }
+      `}</style>
     </div>
   );
 }

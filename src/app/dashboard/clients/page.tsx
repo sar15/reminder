@@ -1,7 +1,6 @@
 import { getClients, getAllTasks } from "@/lib/data";
 import { getRiskLevel, formatComplianceType } from "@/lib/utils";
 import Link from "next/link";
-import { Plus, Search, ArrowRight } from "lucide-react";
 
 export default async function ClientsPage() {
   const [clients, tasks] = await Promise.all([getClients(), getAllTasks()]);
@@ -15,115 +14,127 @@ export default async function ClientsPage() {
   const enriched = clients.map((c) => {
     const all = tasksByClient[c.id] ?? [];
     const active = all.filter((t) => t.status !== "filed");
-    return { ...c, riskLevel: getRiskLevel(active), activeCount: active.length };
+    return { ...c, riskLevel: getRiskLevel(active), activeCount: active.length, totalCount: all.length };
   });
 
-  const riskDot = {
-    red: "bg-red-500",
-    yellow: "bg-amber-400",
-    green: "bg-emerald-500",
-  };
-
-  const riskBadge = {
-    red: "bg-red-50 text-red-700 border-red-200",
-    yellow: "bg-amber-50 text-amber-700 border-amber-200",
-    green: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  };
+  const riskDot = { red: "#dc2626", yellow: "#d97706", green: "#059669" };
+  const riskLabel = { red: "Critical", yellow: "Waiting", green: "On Track" };
+  const riskBg = { red: "#fef2f2", yellow: "#fffbeb", green: "#f0fdf4" };
+  const riskText = { red: "#991b1b", yellow: "#92400e", green: "#166534" };
 
   return (
-    <div className="p-6 space-y-5 max-w-6xl">
+    <div style={{ padding: 28, maxWidth: 1100 }}>
+
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
         <div>
-          <h1 className="text-xl font-bold text-slate-900">Clients</h1>
-          <p className="text-sm text-slate-500 mt-0.5">{clients.length} active clients</p>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: "#111827" }}>Clients</h1>
+          <p style={{ fontSize: 13, color: "#6b7280", marginTop: 3 }}>{clients.length} active clients</p>
         </div>
-        <Link
-          href="/dashboard/clients/new"
-          className="flex items-center gap-2 bg-indigo-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-indigo-700 transition font-medium"
-        >
-          <Plus size={15} />
-          Add Client
+        <Link href="/dashboard/clients/new" style={{
+          background: "#4f46e5", color: "#fff",
+          padding: "9px 18px", borderRadius: 8,
+          fontSize: 13, fontWeight: 600, textDecoration: "none",
+        }}>
+          + Add Client
         </Link>
       </div>
 
-      {/* Search bar */}
-      <div className="relative">
-        <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-        <input
-          type="text"
-          placeholder="Search clients by name, PAN, or GSTIN..."
-          className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-          readOnly
-        />
-      </div>
-
       {/* Table */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-        <table className="w-full">
+      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
-            <tr className="border-b border-slate-100 bg-slate-50">
-              <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Client</th>
-              <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">PAN / GSTIN</th>
-              <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Compliances</th>
-              <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Risk</th>
-              <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Tasks</th>
-              <th className="px-5 py-3" />
+            <tr style={{ background: "#f9fafb", borderBottom: "1px solid #e5e7eb" }}>
+              {["Client", "PAN / GSTIN", "Compliances", "Risk", "Tasks", ""].map((h) => (
+                <th key={h} style={{
+                  textAlign: "left", padding: "11px 18px",
+                  fontSize: 11, fontWeight: 600, color: "#6b7280",
+                  textTransform: "uppercase", letterSpacing: "0.05em",
+                }}>
+                  {h}
+                </th>
+              ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
-            {enriched.map((client) => (
-              <tr key={client.id} className="hover:bg-slate-50 transition-colors">
-                <td className="px-5 py-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                      <span className="text-xs font-bold text-indigo-600">
-                        {client.name.charAt(0)}
-                      </span>
+          <tbody>
+            {enriched.map((client, i) => (
+              <tr key={client.id} style={{
+                borderBottom: i < enriched.length - 1 ? "1px solid #f3f4f6" : "none",
+              }}
+              className="table-row"
+              >
+                {/* Client */}
+                <td style={{ padding: "14px 18px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{
+                      width: 34, height: 34, borderRadius: 8,
+                      background: "#ede9fe",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: 13, fontWeight: 700, color: "#4f46e5", flexShrink: 0,
+                    }}>
+                      {client.name.charAt(0)}
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-slate-800">{client.name}</p>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "#111827" }}>{client.name}</div>
                       {client.contact_name && (
-                        <p className="text-xs text-slate-400">{client.contact_name}</p>
+                        <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 1 }}>{client.contact_name}</div>
                       )}
                     </div>
                   </div>
                 </td>
-                <td className="px-5 py-4">
-                  <p className="text-xs font-mono text-slate-600">{client.pan ?? "—"}</p>
-                  <p className="text-xs font-mono text-slate-400 mt-0.5">{client.gstin ?? "—"}</p>
+
+                {/* PAN / GSTIN */}
+                <td style={{ padding: "14px 18px" }}>
+                  <div style={{ fontSize: 12, fontFamily: "monospace", color: "#374151" }}>{client.pan ?? "—"}</div>
+                  <div style={{ fontSize: 11, fontFamily: "monospace", color: "#9ca3af", marginTop: 2 }}>{client.gstin ?? "—"}</div>
                 </td>
-                <td className="px-5 py-4">
-                  <div className="flex flex-wrap gap-1">
+
+                {/* Compliances */}
+                <td style={{ padding: "14px 18px" }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
                     {client.compliance_types.slice(0, 3).map((t) => (
-                      <span key={t} className="bg-slate-100 text-slate-600 text-[10px] font-medium px-2 py-0.5 rounded-md">
+                      <span key={t} style={{
+                        background: "#f3f4f6", color: "#374151",
+                        fontSize: 10, fontWeight: 500,
+                        padding: "2px 7px", borderRadius: 4,
+                      }}>
                         {formatComplianceType(t)}
                       </span>
                     ))}
                     {client.compliance_types.length > 3 && (
-                      <span className="text-[10px] text-slate-400 px-1">
+                      <span style={{ fontSize: 11, color: "#9ca3af" }}>
                         +{client.compliance_types.length - 3}
                       </span>
                     )}
                   </div>
                 </td>
-                <td className="px-5 py-4">
-                  <div className="flex items-center gap-1.5">
-                    <span className={`w-2 h-2 rounded-full ${riskDot[client.riskLevel]}`} />
-                    <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full border ${riskBadge[client.riskLevel]}`}>
-                      {client.riskLevel === "red" ? "Critical" : client.riskLevel === "yellow" ? "Waiting" : "On Track"}
+
+                {/* Risk */}
+                <td style={{ padding: "14px 18px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ width: 7, height: 7, borderRadius: "50%", background: riskDot[client.riskLevel] }} />
+                    <span style={{
+                      fontSize: 11, fontWeight: 600,
+                      background: riskBg[client.riskLevel],
+                      color: riskText[client.riskLevel],
+                      padding: "2px 8px", borderRadius: 20,
+                    }}>
+                      {riskLabel[client.riskLevel]}
                     </span>
                   </div>
                 </td>
-                <td className="px-5 py-4">
-                  <span className="text-xs text-slate-500">{client.activeCount} active</span>
+
+                {/* Tasks */}
+                <td style={{ padding: "14px 18px" }}>
+                  <span style={{ fontSize: 12, color: "#6b7280" }}>{client.activeCount} active</span>
                 </td>
-                <td className="px-5 py-4">
-                  <Link
-                    href={`/dashboard/clients/${client.id}`}
-                    className="flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 font-medium transition"
-                  >
-                    View <ArrowRight size={12} />
+
+                {/* Action */}
+                <td style={{ padding: "14px 18px" }}>
+                  <Link href={`/dashboard/clients/${client.id}`} style={{
+                    fontSize: 12, fontWeight: 600, color: "#4f46e5", textDecoration: "none",
+                  }}>
+                    View →
                   </Link>
                 </td>
               </tr>
@@ -131,6 +142,10 @@ export default async function ClientsPage() {
           </tbody>
         </table>
       </div>
+
+      <style>{`
+        .table-row:hover { background: #fafafa; }
+      `}</style>
     </div>
   );
 }

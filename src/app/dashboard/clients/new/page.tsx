@@ -1,226 +1,193 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { formatComplianceType } from "@/lib/utils";
 import type { ComplianceType } from "@/types";
+import Link from "next/link";
 
-const ALL_COMPLIANCE_TYPES: ComplianceType[] = [
-  "GSTR1", "GSTR3B", "GSTR9",
-  "TDS_PAYMENT", "TDS_RETURN_24Q", "TDS_RETURN_26Q",
-  "ADVANCE_TAX", "ITR_NON_AUDIT", "ITR_AUDIT", "TAX_AUDIT_3CD",
-  "AOC4", "MGT7", "DIR3_KYC", "MSME1", "PF", "ESI", "LLP_FORM11",
+const ALL_TYPES: ComplianceType[] = [
+  "GSTR1","GSTR3B","GSTR9",
+  "TDS_PAYMENT","TDS_RETURN_24Q","TDS_RETURN_26Q",
+  "ADVANCE_TAX","ITR_NON_AUDIT","ITR_AUDIT","TAX_AUDIT_3CD",
+  "AOC4","MGT7","DIR3_KYC","MSME1","PF","ESI","LLP_FORM11",
 ];
+
+const CLIENT_PRESETS: Record<string, { label: string; types: ComplianceType[] }> = {
+  sme_gst: {
+    label: "SME (GST registered)",
+    types: ["GSTR1","GSTR3B","TDS_PAYMENT","ADVANCE_TAX","ITR_NON_AUDIT"],
+  },
+  company: {
+    label: "Private Limited Company",
+    types: ["GSTR1","GSTR3B","TDS_PAYMENT","TDS_RETURN_26Q","ITR_AUDIT","AOC4","MGT7","DIR3_KYC"],
+  },
+  individual: {
+    label: "Individual / Proprietor",
+    types: ["ITR_NON_AUDIT","ADVANCE_TAX"],
+  },
+  llp: {
+    label: "LLP",
+    types: ["GSTR1","GSTR3B","TDS_PAYMENT","ITR_AUDIT","LLP_FORM11"],
+  },
+};
 
 export default function NewClientPage() {
   const router = useRouter();
-  const supabase = createClient();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
+  const [selectedTypes, setSelectedTypes] = useState<ComplianceType[]>([]);
   const [form, setForm] = useState({
-    name: "",
-    contact_name: "",
-    email: "",
-    phone: "",
-    pan: "",
-    gstin: "",
-    cin: "",
-    preferred_language: "en",
-    compliance_types: [] as ComplianceType[],
+    name: "", contact_name: "", email: "", phone: "",
+    pan: "", gstin: "", cin: "", preferred_language: "en",
   });
 
-  function toggleCompliance(type: ComplianceType) {
-    setForm((f) => ({
-      ...f,
-      compliance_types: f.compliance_types.includes(type)
-        ? f.compliance_types.filter((t) => t !== type)
-        : [...f.compliance_types, type],
-    }));
+  function applyPreset(key: string) {
+    setSelectedTypes(CLIENT_PRESETS[key].types);
+  }
+
+  function toggleType(t: ComplianceType) {
+    setSelectedTypes((prev) =>
+      prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]
+    );
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (form.compliance_types.length === 0) {
-      setError("Select at least one compliance type.");
-      return;
-    }
+    if (selectedTypes.length === 0) { alert("Select at least one compliance type."); return; }
     setLoading(true);
-    setError("");
-
-    // Get current user's firm_id
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setError("Not authenticated"); setLoading(false); return; }
-
-    const { data: userData } = await supabase
-      .from("users")
-      .select("firm_id")
-      .eq("id", user.id)
-      .single();
-
-    if (!userData?.firm_id) { setError("Firm not found"); setLoading(false); return; }
-
-    const { error: insertError } = await supabase.from("clients").insert({
-      ...form,
-      firm_id: userData.firm_id,
-    });
-
-    if (insertError) {
-      setError(insertError.message);
-    } else {
-      router.push("/dashboard/clients");
-    }
-    setLoading(false);
+    await new Promise((r) => setTimeout(r, 800));
+    router.push("/dashboard/clients");
   }
 
   return (
-    <div className="p-6 max-w-2xl">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Add New Client</h1>
-
-      <form onSubmit={handleSubmit} className="space-y-5 bg-white rounded-xl border border-gray-200 p-6">
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Business Name *" required>
-            <input
-              required
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="input"
-              placeholder="Sharma Enterprises Pvt Ltd"
-            />
-          </Field>
-          <Field label="Contact Person">
-            <input
-              value={form.contact_name}
-              onChange={(e) => setForm({ ...form, contact_name: e.target.value })}
-              className="input"
-              placeholder="Rajesh Sharma"
-            />
-          </Field>
-          <Field label="Email">
-            <input
-              type="email"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className="input"
-              placeholder="rajesh@sharma.com"
-            />
-          </Field>
-          <Field label="Phone">
-            <input
-              value={form.phone}
-              onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              className="input"
-              placeholder="+91 98765 43210"
-            />
-          </Field>
-          <Field label="PAN">
-            <input
-              value={form.pan}
-              onChange={(e) => setForm({ ...form, pan: e.target.value.toUpperCase() })}
-              className="input"
-              placeholder="ABCDE1234F"
-              maxLength={10}
-            />
-          </Field>
-          <Field label="GSTIN">
-            <input
-              value={form.gstin}
-              onChange={(e) => setForm({ ...form, gstin: e.target.value.toUpperCase() })}
-              className="input"
-              placeholder="27ABCDE1234F1Z5"
-            />
-          </Field>
-          <Field label="CIN (if company)">
-            <input
-              value={form.cin}
-              onChange={(e) => setForm({ ...form, cin: e.target.value })}
-              className="input"
-              placeholder="U12345MH2020PTC123456"
-            />
-          </Field>
-          <Field label="Preferred Language">
-            <select
-              value={form.preferred_language}
-              onChange={(e) => setForm({ ...form, preferred_language: e.target.value })}
-              className="input"
-            >
-              <option value="en">English</option>
-              <option value="hi">Hindi</option>
-              <option value="gu">Gujarati</option>
-              <option value="mr">Marathi</option>
-              <option value="ta">Tamil</option>
-            </select>
-          </Field>
-        </div>
-
-        {/* Compliance types */}
+    <div style={{ padding: 28, maxWidth: 760 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+        <Link href="/dashboard/clients" style={{
+          width: 32, height: 32, borderRadius: 8,
+          background: "#fff", border: "1px solid #e5e7eb",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          textDecoration: "none", fontSize: 16, color: "#374151",
+        }}>←</Link>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Applicable Compliances *
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {ALL_COMPLIANCE_TYPES.map((type) => (
-              <button
-                key={type}
-                type="button"
-                onClick={() => toggleCompliance(type)}
-                className={`text-xs px-3 py-1.5 rounded-full border transition ${
-                  form.compliance_types.includes(type)
-                    ? "bg-indigo-600 text-white border-indigo-600"
-                    : "bg-white text-gray-600 border-gray-300 hover:border-indigo-400"
-                }`}
-              >
-                {formatComplianceType(type)}
-              </button>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: "#111827" }}>Add New Client</h1>
+          <p style={{ fontSize: 13, color: "#6b7280", marginTop: 2 }}>Fill in details and select applicable compliances</p>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit}>
+        {/* Basic info */}
+        <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 20, marginBottom: 16 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "#111827", marginBottom: 16 }}>Client Information</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            {[
+              { key: "name",         label: "Business Name *",    placeholder: "Sharma Enterprises Pvt Ltd", required: true },
+              { key: "contact_name", label: "Contact Person",     placeholder: "Rajesh Sharma" },
+              { key: "email",        label: "Email",              placeholder: "rajesh@sharma.com",          type: "email" },
+              { key: "phone",        label: "Phone",              placeholder: "+91 98765 43210" },
+              { key: "pan",          label: "PAN",                placeholder: "ABCDE1234F",                 upper: true },
+              { key: "gstin",        label: "GSTIN",              placeholder: "27ABCDE1234F1Z5",            upper: true },
+              { key: "cin",          label: "CIN (if company)",   placeholder: "U12345MH2020PTC123456" },
+            ].map(({ key, label, placeholder, required, type, upper }) => (
+              <div key={key}>
+                <label style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", display: "block", marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                  {label}
+                </label>
+                <input
+                  type={type ?? "text"}
+                  required={required}
+                  placeholder={placeholder}
+                  value={(form as any)[key]}
+                  onChange={(e) => setForm({ ...form, [key]: upper ? e.target.value.toUpperCase() : e.target.value })}
+                  style={{
+                    width: "100%", border: "1px solid #e5e7eb", borderRadius: 7,
+                    padding: "9px 12px", fontSize: 13, color: "#111827",
+                    outline: "none",
+                  }}
+                />
+              </div>
             ))}
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", display: "block", marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                Preferred Language
+              </label>
+              <select
+                value={form.preferred_language}
+                onChange={(e) => setForm({ ...form, preferred_language: e.target.value })}
+                style={{ width: "100%", border: "1px solid #e5e7eb", borderRadius: 7, padding: "9px 12px", fontSize: 13 }}
+              >
+                <option value="en">English</option>
+                <option value="hi">Hindi</option>
+                <option value="gu">Gujarati</option>
+                <option value="mr">Marathi</option>
+                <option value="ta">Tamil</option>
+              </select>
+            </div>
           </div>
         </div>
 
-        {error && <p className="text-red-600 text-sm">{error}</p>}
+        {/* Compliance types */}
+        <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 20, marginBottom: 16 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "#111827", marginBottom: 6 }}>Applicable Compliances</div>
+          <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 14 }}>
+            Quick-select by client type, or pick individually below.
+          </div>
 
-        <div className="flex gap-3">
-          <button
-            type="submit"
-            disabled={loading}
-            className="bg-indigo-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition disabled:opacity-50"
-          >
+          {/* Presets */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
+            {Object.entries(CLIENT_PRESETS).map(([key, preset]) => (
+              <button key={key} type="button" onClick={() => applyPreset(key)} style={{
+                border: "1px solid #e5e7eb", background: "#f9fafb",
+                borderRadius: 7, padding: "7px 14px",
+                fontSize: 12, fontWeight: 600, color: "#374151", cursor: "pointer",
+              }}>
+                {preset.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Individual toggles */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {ALL_TYPES.map((t) => {
+              const isSelected = selectedTypes.includes(t);
+              return (
+                <button key={t} type="button" onClick={() => toggleType(t)} style={{
+                  border: `1px solid ${isSelected ? "#4f46e5" : "#e5e7eb"}`,
+                  background: isSelected ? "#4f46e5" : "#fff",
+                  color: isSelected ? "#fff" : "#374151",
+                  borderRadius: 7, padding: "6px 12px",
+                  fontSize: 12, fontWeight: 500, cursor: "pointer",
+                }}>
+                  {formatComplianceType(t)}
+                </button>
+              );
+            })}
+          </div>
+
+          {selectedTypes.length > 0 && (
+            <div style={{ marginTop: 12, fontSize: 12, color: "#4f46e5" }}>
+              {selectedTypes.length} compliance type{selectedTypes.length > 1 ? "s" : ""} selected
+            </div>
+          )}
+        </div>
+
+        {/* Submit */}
+        <div style={{ display: "flex", gap: 10 }}>
+          <button type="submit" disabled={loading} style={{
+            background: loading ? "#a5b4fc" : "#4f46e5", color: "#fff",
+            border: "none", borderRadius: 8, padding: "11px 24px",
+            fontSize: 13, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer",
+          }}>
             {loading ? "Saving..." : "Add Client"}
           </button>
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="border border-gray-300 text-gray-600 px-6 py-2 rounded-lg text-sm hover:bg-gray-50 transition"
-          >
+          <Link href="/dashboard/clients" style={{
+            border: "1px solid #e5e7eb", background: "#fff",
+            color: "#374151", borderRadius: 8, padding: "11px 24px",
+            fontSize: 13, fontWeight: 600, textDecoration: "none",
+          }}>
             Cancel
-          </button>
+          </Link>
         </div>
       </form>
-
-      <style jsx>{`
-        .input {
-          width: 100%;
-          border: 1px solid #d1d5db;
-          border-radius: 0.5rem;
-          padding: 0.5rem 0.75rem;
-          font-size: 0.875rem;
-          outline: none;
-        }
-        .input:focus {
-          ring: 2px solid #6366f1;
-        }
-      `}</style>
-    </div>
-  );
-}
-
-function Field({ label, children, required }: { label: string; children: React.ReactNode; required?: boolean }) {
-  return (
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        {label}{required && <span className="text-red-500 ml-0.5">*</span>}
-      </label>
-      {children}
     </div>
   );
 }

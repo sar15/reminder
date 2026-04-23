@@ -1,139 +1,111 @@
 import { getAllTasks, getClients } from "@/lib/data";
 import { formatComplianceType, daysUntilDue } from "@/lib/utils";
 import Link from "next/link";
-import { Send, ArrowRight } from "lucide-react";
 
 export default async function TasksPage() {
   const [tasks, clients] = await Promise.all([getAllTasks(), getClients()]);
   const clientMap = Object.fromEntries(clients.map((c) => [c.id, c]));
 
-  const sorted = [...tasks].sort(
-    (a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
-  );
-
-  const overdue = sorted.filter((t) => daysUntilDue(t.due_date) < 0 && t.status !== "filed");
+  const sorted = [...tasks].sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime());
+  const overdue  = sorted.filter((t) => daysUntilDue(t.due_date) < 0 && t.status !== "filed");
   const upcoming = sorted.filter((t) => daysUntilDue(t.due_date) >= 0 && t.status !== "filed");
-  const filed = sorted.filter((t) => t.status === "filed");
+  const filed    = sorted.filter((t) => t.status === "filed");
+
+  const statusCfg: Record<string, { bg: string; text: string }> = {
+    pending:       { bg: "#f3f4f6", text: "#374151" },
+    waiting_docs:  { bg: "#fef3c7", text: "#92400e" },
+    docs_received: { bg: "#dbeafe", text: "#1e40af" },
+    in_progress:   { bg: "#dbeafe", text: "#1e40af" },
+    review_ready:  { bg: "#ede9fe", text: "#5b21b6" },
+    filed:         { bg: "#d1fae5", text: "#065f46" },
+    overdue:       { bg: "#fee2e2", text: "#991b1b" },
+  };
+
+  function TaskTable({ items, title, count, accent }: {
+    items: typeof tasks; title: string; count: number; accent: string;
+  }) {
+    if (items.length === 0) return null;
+    return (
+      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>
+        <div style={{ padding: "14px 18px", borderBottom: "1px solid #f3f4f6", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span style={{ fontSize: 14, fontWeight: 600, color: "#111827" }}>{title}</span>
+          <span style={{ fontSize: 12, color: accent, fontWeight: 600 }}>{count} tasks</span>
+        </div>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr style={{ background: "#f9fafb", borderBottom: "1px solid #f3f4f6" }}>
+              {["Client", "Compliance", "Period", "Due Date", "Status", ""].map((h) => (
+                <th key={h} style={{ textAlign: "left", padding: "9px 18px", fontSize: 11, fontWeight: 600, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((task, i) => {
+              const days = daysUntilDue(task.due_date);
+              const isOverdue = days < 0 && task.status !== "filed";
+              const client = clientMap[task.client_id];
+              const s = statusCfg[task.status] ?? statusCfg.pending;
+              return (
+                <tr key={task.id} style={{
+                  borderBottom: i < items.length - 1 ? "1px solid #f3f4f6" : "none",
+                  background: isOverdue ? "#fff9f9" : "transparent",
+                }}>
+                  <td style={{ padding: "12px 18px", fontSize: 13, fontWeight: 600, color: "#111827" }}>{client?.name ?? "—"}</td>
+                  <td style={{ padding: "12px 18px", fontSize: 13, color: "#374151" }}>{formatComplianceType(task.compliance_type)}</td>
+                  <td style={{ padding: "12px 18px", fontSize: 12, color: "#6b7280" }}>{task.period}</td>
+                  <td style={{ padding: "12px 18px" }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: isOverdue ? "#dc2626" : days <= 5 ? "#d97706" : "#111827" }}>
+                      {task.due_date}
+                    </div>
+                    {task.status !== "filed" && (
+                      <div style={{ fontSize: 11, color: isOverdue ? "#dc2626" : "#9ca3af", marginTop: 1 }}>
+                        {isOverdue ? `${Math.abs(days)}d overdue` : `${days}d left`}
+                      </div>
+                    )}
+                  </td>
+                  <td style={{ padding: "12px 18px" }}>
+                    <span style={{ fontSize: 11, fontWeight: 600, background: s.bg, color: s.text, padding: "3px 8px", borderRadius: 20 }}>
+                      {task.status.replace(/_/g, " ")}
+                    </span>
+                  </td>
+                  <td style={{ padding: "12px 18px" }}>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      {isOverdue && (
+                        <Link href={`/dashboard/clients/${task.client_id}/remind`} style={{
+                          fontSize: 11, fontWeight: 600, color: "#dc2626",
+                          background: "#fef2f2", padding: "3px 8px", borderRadius: 6,
+                          textDecoration: "none",
+                        }}>
+                          Remind
+                        </Link>
+                      )}
+                      <Link href={`/dashboard/clients/${task.client_id}`} style={{ fontSize: 12, color: "#4f46e5", textDecoration: "none", fontWeight: 600 }}>
+                        View →
+                      </Link>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-6 space-y-5 max-w-6xl">
-      <div>
-        <h1 className="text-xl font-bold text-slate-900">All Tasks</h1>
-        <p className="text-sm text-slate-500 mt-0.5">
+    <div style={{ padding: 28, maxWidth: 1100 }}>
+      <div style={{ marginBottom: 24 }}>
+        <h1 style={{ fontSize: 20, fontWeight: 700, color: "#111827" }}>All Tasks</h1>
+        <p style={{ fontSize: 13, color: "#6b7280", marginTop: 3 }}>
           Sorted by deadline · {overdue.length} overdue · {upcoming.length} upcoming · {filed.length} filed
         </p>
       </div>
-
-      {/* Overdue */}
-      {overdue.length > 0 && (
-        <Section title="⚠️ Overdue" count={overdue.length} accent="red">
-          {overdue.map((task) => (
-            <TaskRow key={task.id} task={task} client={clientMap[task.client_id]} />
-          ))}
-        </Section>
-      )}
-
-      {/* Upcoming */}
-      <Section title="📋 Upcoming" count={upcoming.length} accent="slate">
-        {upcoming.length === 0 ? (
-          <tr><td colSpan={6} className="px-5 py-8 text-center text-sm text-slate-400">No upcoming tasks.</td></tr>
-        ) : (
-          upcoming.map((task) => (
-            <TaskRow key={task.id} task={task} client={clientMap[task.client_id]} />
-          ))
-        )}
-      </Section>
-
-      {/* Filed */}
-      {filed.length > 0 && (
-        <Section title="✅ Filed" count={filed.length} accent="emerald">
-          {filed.map((task) => (
-            <TaskRow key={task.id} task={task} client={clientMap[task.client_id]} />
-          ))}
-        </Section>
-      )}
-    </div>
-  );
-}
-
-function Section({ title, count, accent, children }: {
-  title: string; count: number; accent: string; children: React.ReactNode;
-}) {
-  return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-      <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-slate-800">{title}</h2>
-        <span className="text-xs text-slate-400">{count} tasks</span>
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <TaskTable items={overdue}  title="⚠️ Overdue"  count={overdue.length}  accent="#dc2626" />
+        <TaskTable items={upcoming} title="📋 Upcoming" count={upcoming.length} accent="#4f46e5" />
+        <TaskTable items={filed}    title="✅ Filed"    count={filed.length}    accent="#059669" />
       </div>
-      <table className="w-full">
-        <thead>
-          <tr className="bg-slate-50 border-b border-slate-100">
-            <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Client</th>
-            <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Compliance</th>
-            <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Period</th>
-            <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Due Date</th>
-            <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Status</th>
-            <th className="px-5 py-2.5" />
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-100">{children}</tbody>
-      </table>
     </div>
-  );
-}
-
-function TaskRow({ task, client }: { task: any; client: any }) {
-  const days = daysUntilDue(task.due_date);
-  const isOverdue = days < 0 && task.status !== "filed";
-
-  const statusMap: Record<string, string> = {
-    pending: "bg-slate-100 text-slate-600",
-    waiting_docs: "bg-amber-100 text-amber-700",
-    docs_received: "bg-blue-100 text-blue-700",
-    in_progress: "bg-blue-100 text-blue-700",
-    review_ready: "bg-purple-100 text-purple-700",
-    filed: "bg-emerald-100 text-emerald-700",
-    overdue: "bg-red-100 text-red-700",
-  };
-
-  return (
-    <tr className={`${isOverdue ? "bg-red-50/40" : "hover:bg-slate-50"} transition-colors`}>
-      <td className="px-5 py-3">
-        <p className="text-sm font-medium text-slate-800">{client?.name ?? "—"}</p>
-      </td>
-      <td className="px-5 py-3 text-sm text-slate-700">{formatComplianceType(task.compliance_type)}</td>
-      <td className="px-5 py-3 text-sm text-slate-500">{task.period}</td>
-      <td className="px-5 py-3">
-        <p className={`text-sm font-medium ${isOverdue ? "text-red-600" : days <= 5 ? "text-orange-600" : "text-slate-700"}`}>
-          {task.due_date}
-        </p>
-        {task.status !== "filed" && (
-          <p className={`text-[10px] mt-0.5 ${isOverdue ? "text-red-500 font-medium" : "text-slate-400"}`}>
-            {isOverdue ? `${Math.abs(days)}d overdue` : `${days}d left`}
-          </p>
-        )}
-      </td>
-      <td className="px-5 py-3">
-        <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${statusMap[task.status] ?? "bg-slate-100 text-slate-600"}`}>
-          {task.status.replace(/_/g, " ")}
-        </span>
-      </td>
-      <td className="px-5 py-3">
-        <div className="flex items-center gap-2">
-          {isOverdue && (
-            <Link
-              href={`/dashboard/clients/${task.client_id}/remind`}
-              className="flex items-center gap-1 text-[10px] bg-red-100 text-red-700 px-2 py-1 rounded-lg hover:bg-red-200 transition"
-            >
-              <Send size={10} />
-              Remind
-            </Link>
-          )}
-          <Link href={`/dashboard/clients/${task.client_id}`} className="text-indigo-600 hover:text-indigo-800 transition">
-            <ArrowRight size={14} />
-          </Link>
-        </div>
-      </td>
-    </tr>
   );
 }
