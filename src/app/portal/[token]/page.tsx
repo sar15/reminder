@@ -1,10 +1,9 @@
 import { formatComplianceType } from "@/lib/utils";
 import { MOCK_CLIENTS, MOCK_TASKS } from "@/lib/mock-data";
-import { Shield, Upload, Camera } from "lucide-react";
+import { T } from "@/lib/tokens";
 
 const TOKEN_MAP: Record<string, string> = {
-  "demo-sharma": "1", "demo-mehta": "2", "demo-patel": "3",
-  "demo-gupta": "4", "demo-reddy": "5",
+  "demo-sharma": "1", "demo-mehta": "2", "demo-patel": "3", "demo-gupta": "4", "demo-reddy": "5",
 };
 
 const DOCS: Record<string, string[]> = {
@@ -31,113 +30,106 @@ export default async function PortalPage({ params }: { params: Promise<{ token: 
   const filed  = tasks.filter(t => t.status === "filed");
 
   if (!client) return (
-    <div className="min-h-screen bg-[#FAFAF9] flex items-center justify-center">
-      <div className="text-center">
-        <p className="text-[14px] text-[#57534E]">Invalid or expired link.</p>
-        <p className="text-[12px] text-[#A8A29E] mt-1">Please contact your CA for a new link.</p>
+    <div style={{ minHeight: "100vh", background: T.bgBase, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ textAlign: "center" }}>
+        <p style={{ fontSize: 14, color: T.text2 }}>Invalid or expired link.</p>
+        <p style={{ fontSize: 12, color: T.text3, marginTop: 4 }}>Please contact your CA for a new link.</p>
       </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-[#FAFAF9]">
+    <div style={{ minHeight: "100vh", background: T.bgBase }}>
 
       {/* Header */}
-      <div className="bg-white border-b border-[#E8E6E3] px-5 pt-6 pb-5">
-        <div className="max-w-[520px] mx-auto">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-6 h-6 rounded-md bg-[#6D28D9] flex items-center justify-center">
-              <Shield size={12} className="text-white" strokeWidth={2.5} />
-            </div>
-            <span className="text-[11px] font-medium text-[#A8A29E]">DeadlineShield · Secure Portal</span>
+      <div style={{ background: T.bgSurface, borderBottom: `1px solid ${T.border}`, padding: "20px 20px 16px" }}>
+        <div style={{ maxWidth: 520, margin: "0 auto" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+            <div style={{ width: 24, height: 24, background: T.brand, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: "#fff", fontWeight: 700 }}>D</div>
+            <span style={{ fontSize: 11, color: T.text3, fontWeight: 500 }}>DeadlineShield · Secure Portal</span>
           </div>
-          <h1 className="text-[18px] font-semibold text-[#1C1917] tracking-tight">{client.name}</h1>
-          <p className="text-[12px] text-[#A8A29E] mt-0.5">
-            {client.contact_name && `${client.contact_name} · `}
-            {client.pan && `PAN: ${client.pan}`}
+          <h1 style={{ fontSize: 18, fontWeight: 700, color: T.text1, letterSpacing: "-0.02em" }}>{client.name}</h1>
+          <p style={{ fontSize: 12, color: T.text3, marginTop: 3 }}>
+            {client.contact_name && `${client.contact_name} · `}{client.pan && `PAN: ${client.pan}`}
           </p>
-
-          {/* Stats */}
-          <div className="flex gap-3 mt-4">
-            <Stat n={active.length} label="Pending" color={active.length > 0 ? "#D97706" : "#A8A29E"} />
-            <Stat n={filed.length}  label="Filed"   color="#059669" />
-            <Stat n={client.compliance_types.length} label="Compliances" color="#6D28D9" />
+          <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+            {[
+              { n: active.length, label: "Pending",     color: active.length > 0 ? T.amber : T.text3 },
+              { n: filed.length,  label: "Filed",       color: T.green },
+              { n: client.compliance_types.length, label: "Compliances", color: T.brand },
+            ].map(({ n, label, color }) => (
+              <div key={label} style={{ flex: 1, background: T.bgSubtle, borderRadius: 8, border: `1px solid ${T.border}`, padding: "8px 12px", textAlign: "center" }}>
+                <div style={{ fontSize: 20, fontWeight: 800, color }}>{n}</div>
+                <div style={{ fontSize: 10, color: T.text3, marginTop: 2 }}>{label}</div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
-      <div className="max-w-[520px] mx-auto px-5 py-5 space-y-4">
+      <div style={{ maxWidth: 520, margin: "0 auto", padding: "18px 16px" }}>
 
-        {/* Active tasks */}
+        {/* Active */}
         {active.length > 0 && (
-          <div>
-            <p className="text-[10px] font-semibold text-[#A8A29E] uppercase tracking-wider mb-3">
+          <div style={{ marginBottom: 22 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: T.text3, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>
               Action Required
-            </p>
-            <div className="space-y-3">
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {active.map(task => {
                 const d = Math.ceil((new Date(task.due_date).getTime() - Date.now()) / 86400000);
                 const overdue = d < 0;
                 const urgent  = d <= 3 && !overdue;
                 const docs = DOCS[task.compliance_type] ?? DOCS.DEFAULT;
-                const accent = overdue ? "#DC2626" : urgent ? "#D97706" : "#6D28D9";
-                const accentBg = overdue ? "#FEF2F2" : urgent ? "#FFFBEB" : "#EDE9FE";
-                const accentBorder = overdue ? "#FECACA" : urgent ? "#FDE68A" : "#DDD6FE";
+                const accent = overdue ? T.red : urgent ? T.amber : T.brand;
+                const accentBg = overdue ? T.redLight : urgent ? T.amberLight : T.brandLight;
+                const accentBorder = overdue ? T.redBorder : urgent ? T.amberBorder : T.brandBorder;
 
                 return (
-                  <div key={task.id} className="bg-white rounded-xl border overflow-hidden shadow-[0_1px_4px_rgba(0,0,0,0.06)]" style={{ borderColor: accentBorder }}>
-                    {/* Top accent line */}
-                    <div className="h-0.5" style={{ background: accent }} />
-
-                    <div className="p-4">
-                      {/* Task header */}
-                      <div className="flex items-start justify-between mb-3">
+                  <div key={task.id} style={{ background: T.bgSurface, borderRadius: 12, border: `1px solid ${accentBorder}`, overflow: "hidden", boxShadow: T.shadow }}>
+                    <div style={{ height: 3, background: accent }} />
+                    <div style={{ padding: 16 }}>
+                      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 12 }}>
                         <div>
-                          <p className="text-[14px] font-semibold text-[#1C1917]">
-                            {formatComplianceType(task.compliance_type)}
-                          </p>
-                          <p className="text-[11px] text-[#A8A29E] mt-0.5">Period: {task.period}</p>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: T.text1 }}>{formatComplianceType(task.compliance_type)}</div>
+                          <div style={{ fontSize: 11, color: T.text3, marginTop: 2 }}>Period: {task.period}</div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-[11px] text-[#A8A29E]">Due</p>
-                          <p className="text-[13px] font-bold" style={{ color: accent }}>{task.due_date}</p>
-                          <p className="text-[11px] font-semibold" style={{ color: accent }}>
-                            {overdue ? `${Math.abs(d)}d overdue` : `${d}d left`}
-                          </p>
+                        <div style={{ textAlign: "right" }}>
+                          <div style={{ fontSize: 11, color: T.text3 }}>Due</div>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: accent }}>{task.due_date}</div>
+                          <div style={{ fontSize: 11, fontWeight: 600, color: accent }}>{overdue ? `${Math.abs(d)}d overdue` : `${d}d left`}</div>
                         </div>
                       </div>
 
-                      {/* Document checklist */}
-                      <div className="rounded-lg p-3 mb-3" style={{ background: accentBg }}>
-                        <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: accent }}>
-                          Documents Required
-                        </p>
-                        <div className="space-y-1.5">
+                      {/* Checklist */}
+                      <div style={{ background: accentBg, borderRadius: 8, padding: "10px 12px", marginBottom: 12 }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: accent, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>Documents Required</div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                           {docs.map(doc => (
-                            <div key={doc} className="flex items-center gap-2">
-                              <div className="w-3.5 h-3.5 rounded border-[1.5px] flex-shrink-0" style={{ borderColor: accent }} />
-                              <span className="text-[12px] text-[#374151]">{doc}</span>
+                            <div key={doc} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                              <div style={{ width: 14, height: 14, borderRadius: 3, border: `1.5px solid ${accent}`, flexShrink: 0 }} />
+                              <span style={{ fontSize: 12, color: T.text2 }}>{doc}</span>
                             </div>
                           ))}
                         </div>
                       </div>
 
                       {/* Status */}
-                      <p className="text-[12px] mb-3" style={{ color: accent }}>
+                      <div style={{ fontSize: 12, color: accent, marginBottom: 12 }}>
                         {task.status === "waiting_docs" ? "📋 Please upload documents now"
                           : task.status === "docs_received" ? "⚙️ Documents received — CA is processing"
                           : task.status === "overdue" ? "🚨 OVERDUE — contact your CA immediately"
                           : "⏳ Awaiting your documents"}
-                      </p>
+                      </div>
 
-                      {/* Upload buttons */}
+                      {/* Upload */}
                       {(task.status === "pending" || task.status === "waiting_docs") && (
-                        <div className="flex gap-2">
-                          <button className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-white text-[13px] font-semibold transition-colors" style={{ background: accent }}>
-                            <Camera size={14} /> Camera
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <button style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "11px", background: accent, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                            📷 Camera
                           </button>
-                          <button className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-[13px] font-semibold border-[1.5px] transition-colors" style={{ color: accent, borderColor: accent, background: "white" }}>
-                            <Upload size={14} /> Upload File
+                          <button style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "11px", background: T.bgSurface, color: accent, border: `1.5px solid ${accent}`, borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                            📁 Upload File
                           </button>
                         </div>
                       )}
@@ -151,18 +143,18 @@ export default async function PortalPage({ params }: { params: Promise<{ token: 
 
         {/* Filed */}
         {filed.length > 0 && (
-          <div>
-            <p className="text-[10px] font-semibold text-[#A8A29E] uppercase tracking-wider mb-3">Completed</p>
-            <div className="space-y-2">
+          <div style={{ marginBottom: 22 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: T.text3, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>Completed</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {filed.map(task => (
-                <div key={task.id} className="bg-white rounded-xl border border-[#E8E6E3] px-4 py-3 flex items-center justify-between shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                <div key={task.id} style={{ background: T.bgSurface, borderRadius: 10, border: `1px solid ${T.border}`, padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", boxShadow: T.shadow }}>
                   <div>
-                    <p className="text-[13px] font-medium text-[#57534E]">{formatComplianceType(task.compliance_type)}</p>
-                    <p className="text-[11px] text-[#A8A29E]">{task.period}</p>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: T.text2 }}>{formatComplianceType(task.compliance_type)}</div>
+                    <div style={{ fontSize: 11, color: T.text3 }}>{task.period}</div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] text-[#A8A29E]">{task.due_date}</span>
-                    <span className="px-2 py-0.5 rounded-full bg-[#ECFDF5] text-[#065F46] text-[10px] font-semibold">Filed ✓</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ fontSize: 11, color: T.text3 }}>{task.due_date}</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 20, background: T.greenLight, color: T.greenText }}>Filed ✓</span>
                   </div>
                 </div>
               ))}
@@ -171,26 +163,16 @@ export default async function PortalPage({ params }: { params: Promise<{ token: 
         )}
 
         {active.length === 0 && filed.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-[32px] mb-3">🎉</p>
-            <p className="text-[14px] text-[#57534E]">No pending compliances.</p>
+          <div style={{ textAlign: "center", padding: "48px 0" }}>
+            <div style={{ fontSize: 36, marginBottom: 12 }}>🎉</div>
+            <p style={{ fontSize: 14, color: T.text2 }}>No pending compliances. You're all caught up!</p>
           </div>
         )}
 
-        {/* Footer */}
-        <div className="pt-4 border-t border-[#F0EFED] text-center">
-          <p className="text-[11px] text-[#A8A29E]">🔒 Secured by DeadlineShield · Do not share this link</p>
+        <div style={{ borderTop: `1px solid ${T.border}`, paddingTop: 16, textAlign: "center" }}>
+          <p style={{ fontSize: 11, color: T.text3 }}>🔒 Secured by DeadlineShield · Do not share this link</p>
         </div>
       </div>
-    </div>
-  );
-}
-
-function Stat({ n, label, color }: { n: number; label: string; color: string }) {
-  return (
-    <div className="flex-1 bg-[#FAFAF9] rounded-lg border border-[#E8E6E3] px-3 py-2 text-center">
-      <p className="text-[18px] font-bold" style={{ color }}>{n}</p>
-      <p className="text-[10px] text-[#A8A29E]">{label}</p>
     </div>
   );
 }

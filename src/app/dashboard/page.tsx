@@ -1,7 +1,7 @@
 import { getClients, getAllTasks } from "@/lib/data";
 import { getRiskLevel, daysUntilDue, formatComplianceType } from "@/lib/utils";
 import Link from "next/link";
-import { ArrowRight, Send, AlertCircle } from "lucide-react";
+import { T, S } from "@/lib/tokens";
 
 export default async function DashboardPage() {
   const [clients, tasks] = await Promise.all([getClients(), getAllTasks()]);
@@ -12,73 +12,100 @@ export default async function DashboardPage() {
 
   const summaries = clients.map((c) => {
     const all    = byClient[c.id] ?? [];
-    const active = all.filter((t) => t.status !== "filed");
+    const active = all.filter(t => t.status !== "filed");
     const risk   = getRiskLevel(active);
     const next   = [...active].sort((a, b) => +new Date(a.due_date) - +new Date(b.due_date))[0];
     return { c, risk, next: next ?? null, days: next ? daysUntilDue(next.due_date) : null, activeCount: active.length };
   });
 
-  const red    = summaries.filter((s) => s.risk === "red");
-  const yellow = summaries.filter((s) => s.risk === "yellow");
-  const green  = summaries.filter((s) => s.risk === "green");
-  const filed  = tasks.filter((t) => t.status === "filed").length;
+  const red    = summaries.filter(s => s.risk === "red");
+  const yellow = summaries.filter(s => s.risk === "yellow");
+  const green  = summaries.filter(s => s.risk === "green");
+  const filed  = tasks.filter(t => t.status === "filed").length;
 
   return (
-    <div className="p-7 max-w-[1080px]">
+    <div style={{ padding: 28, maxWidth: 1060 }}>
 
-      {/* Page header */}
-      <div className="flex items-center justify-between mb-7">
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24 }}>
         <div>
-          <h1 className="text-[20px] font-semibold text-[#1C1917] tracking-tight">
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: T.text1, letterSpacing: "-0.03em", lineHeight: 1.2 }}>
             Command Center
           </h1>
-          <p className="text-[13px] text-[#A8A29E] mt-0.5">
+          <p style={{ fontSize: 13, color: T.text3, marginTop: 4 }}>
             Focus on red first — everything else can wait.
           </p>
         </div>
-        <Link
-          href="/dashboard/clients/new"
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#6D28D9] text-white text-[13px] font-medium hover:bg-[#5B21B6] shadow-[0_1px_2px_rgba(109,40,217,0.25)] transition-colors"
-        >
+        <Link href="/dashboard/clients/new" style={S.btnPrimary}>
           + Add Client
         </Link>
       </div>
 
       {/* KPI row */}
-      <div className="grid grid-cols-4 gap-4 mb-7">
-        <KpiCard n={clients.length} label="Total Clients"  sub="active"          accent="#6D28D9" bg="#F5F3FF" />
-        <KpiCard n={red.length}     label="Critical"       sub="need action now" accent="#DC2626" bg="#FEF2F2" pulse={red.length > 0} />
-        <KpiCard n={yellow.length}  label="Awaiting Docs"  sub="reminders sent"  accent="#D97706" bg="#FFFBEB" />
-        <KpiCard n={filed}          label="Filed"          sub="this month"      accent="#059669" bg="#ECFDF5" />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 24 }}>
+        {[
+          { n: clients.length, label: "Total Clients",  sub: "active",          color: T.brand,  bg: T.brandLight },
+          { n: red.length,     label: "Critical",       sub: "need action now", color: T.red,    bg: T.redLight,   pulse: red.length > 0 },
+          { n: yellow.length,  label: "Awaiting Docs",  sub: "reminders sent",  color: T.amber,  bg: T.amberLight },
+          { n: filed,          label: "Filed",          sub: "this month",      color: T.green,  bg: T.greenLight },
+        ].map(({ n, label, sub, color, bg, pulse }) => (
+          <div key={label} style={{ ...S.card, padding: "18px 20px" }}>
+            <div style={{ ...S.label, marginBottom: 10 }}>{label}</div>
+            <div style={{ display: "flex", alignItems: "flex-end", gap: 6 }}>
+              <span style={{ fontSize: 36, fontWeight: 800, color, lineHeight: 1 }}>{n}</span>
+              {pulse && n > 0 && (
+                <span style={{
+                  width: 8, height: 8, borderRadius: "50%", background: color,
+                  marginBottom: 6, animation: "pulse 1.5s infinite",
+                }} />
+              )}
+            </div>
+            <div style={{ fontSize: 11, color: T.text3, marginTop: 4 }}>{sub}</div>
+          </div>
+        ))}
       </div>
 
-      {/* Escalation strip */}
+      {/* Escalation banner */}
       {red.length > 0 && (
-        <div className="mb-7 rounded-xl border border-[#FECACA] bg-[#FEF2F2] p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <AlertCircle size={14} className="text-[#DC2626]" />
-            <span className="text-[13px] font-semibold text-[#991B1B]">
+        <div style={{
+          background: T.redLight,
+          border: `1px solid ${T.redBorder}`,
+          borderRadius: 12,
+          padding: "14px 16px",
+          marginBottom: 24,
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+            <span style={{ fontSize: 14 }}>🚨</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: T.redText }}>
               Partner action required — {red.length} client{red.length > 1 ? "s" : ""} at critical risk
             </span>
           </div>
-          <div className="space-y-2">
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {red.map(({ c, next, days }) => (
-              <div key={c.id} className="flex items-center justify-between bg-white rounded-lg px-4 py-2.5 border border-[#FECACA]">
-                <div className="flex items-center gap-3">
-                  <span className="text-[13px] font-semibold text-[#1C1917]">{c.name}</span>
+              <div key={c.id} style={{
+                background: T.bgSurface,
+                border: `1px solid ${T.redBorder}`,
+                borderRadius: 8,
+                padding: "10px 14px",
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+              }}>
+                <div>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: T.text1 }}>{c.name}</span>
                   {next && (
-                    <span className="text-[12px] text-[#DC2626]">
+                    <span style={{ fontSize: 12, color: T.red, marginLeft: 10 }}>
                       {formatComplianceType(next.compliance_type)} ·{" "}
                       {days !== null && days < 0 ? `${Math.abs(days)}d overdue` : `${days}d left`}
                     </span>
                   )}
                 </div>
-                <Link
-                  href={`/dashboard/clients/${c.id}/remind`}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#DC2626] text-white text-[11px] font-semibold hover:bg-[#B91C1C] transition-colors"
-                >
-                  <Send size={10} />
-                  Send Final Warning
+                <Link href={`/dashboard/clients/${c.id}/remind`} style={{
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                  padding: "6px 14px",
+                  background: T.red, color: "#fff",
+                  borderRadius: 7, fontSize: 12, fontWeight: 600,
+                  textDecoration: "none",
+                }}>
+                  Send Final Warning →
                 </Link>
               </div>
             ))}
@@ -87,39 +114,19 @@ export default async function DashboardPage() {
       )}
 
       {/* 3-col heatmap */}
-      <div className="grid grid-cols-3 gap-5">
-        <HeatmapCol color="red"    label="Critical"      sub="≤5 days or overdue"    count={red.length}    items={red} />
-        <HeatmapCol color="yellow" label="Awaiting Docs" sub="Reminders sent, waiting" count={yellow.length} items={yellow} />
-        <HeatmapCol color="green"  label="On Track"      sub="Docs received or filed"  count={green.length}  items={green} />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
+        <HeatmapCol color="red"    label="🔴 Critical"      sub="≤5 days or overdue"     count={red.length}    items={red} />
+        <HeatmapCol color="yellow" label="🟡 Awaiting Docs" sub="Reminders sent, waiting" count={yellow.length} items={yellow} />
+        <HeatmapCol color="green"  label="🟢 On Track"      sub="Docs received or filed"  count={green.length}  items={green} />
       </div>
     </div>
   );
 }
 
-// ── KPI Card ──────────────────────────────────────────────────────────────────
-function KpiCard({ n, label, sub, accent, bg, pulse }: {
-  n: number; label: string; sub: string;
-  accent: string; bg: string; pulse?: boolean;
-}) {
-  return (
-    <div className="bg-white rounded-xl border border-[#E8E6E3] p-5 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
-      <p className="text-[11px] font-medium text-[#A8A29E] uppercase tracking-wider mb-3">{label}</p>
-      <div className="flex items-end gap-2">
-        <span className="text-[32px] font-bold leading-none" style={{ color: accent }}>{n}</span>
-        {pulse && n > 0 && (
-          <span className="mb-1 w-2 h-2 rounded-full animate-pulse" style={{ background: accent }} />
-        )}
-      </div>
-      <p className="text-[11px] text-[#A8A29E] mt-1.5">{sub}</p>
-    </div>
-  );
-}
-
-// ── Heatmap Column ────────────────────────────────────────────────────────────
-const COL_CFG = {
-  red:    { dot: "#DC2626", headerText: "#991B1B", headerBg: "#FEF2F2", border: "#FECACA", cardHover: "#FFF5F5" },
-  yellow: { dot: "#D97706", headerText: "#92400E", headerBg: "#FFFBEB", border: "#FDE68A", cardHover: "#FFFDF0" },
-  green:  { dot: "#059669", headerText: "#065F46", headerBg: "#ECFDF5", border: "#A7F3D0", cardHover: "#F0FDF8" },
+const COL = {
+  red:    { dot: T.red,   hBg: T.redLight,   hBorder: T.redBorder,   hText: T.redText,   cardBorder: "#FECACA" },
+  yellow: { dot: T.amber, hBg: T.amberLight, hBorder: T.amberBorder, hText: T.amberText, cardBorder: "#FDE68A" },
+  green:  { dot: T.green, hBg: T.greenLight, hBorder: T.greenBorder, hText: T.greenText, cardBorder: "#A7F3D0" },
 };
 
 function HeatmapCol({ color, label, sub, count, items }: {
@@ -128,64 +135,80 @@ function HeatmapCol({ color, label, sub, count, items }: {
   items: Array<{
     c: { id: string; name: string; pan: string | null };
     next: { compliance_type: string; due_date: string } | null;
-    days: number | null;
-    activeCount: number;
+    days: number | null; activeCount: number;
   }>;
 }) {
-  const cfg = COL_CFG[color];
+  const cfg = COL[color];
   return (
-    <div className="flex flex-col rounded-xl overflow-hidden border" style={{ borderColor: cfg.border }}>
-      {/* Header */}
-      <div className="px-4 py-3 flex items-center justify-between" style={{ background: cfg.headerBg }}>
+    <div style={{ display: "flex", flexDirection: "column", borderRadius: 12, overflow: "hidden", border: `1px solid ${cfg.cardBorder}` }}>
+      {/* Column header */}
+      <div style={{
+        background: cfg.hBg,
+        padding: "12px 14px",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+      }}>
         <div>
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full" style={{ background: cfg.dot }} />
-            <span className="text-[13px] font-semibold" style={{ color: cfg.headerText }}>{label}</span>
-          </div>
-          <p className="text-[11px] text-[#A8A29E] mt-0.5 pl-4">{sub}</p>
+          <div style={{ fontSize: 13, fontWeight: 700, color: cfg.hText }}>{label}</div>
+          <div style={{ fontSize: 11, color: T.text3, marginTop: 2 }}>{sub}</div>
         </div>
-        <span
-          className="text-[11px] font-bold px-2 py-0.5 rounded-full text-white"
-          style={{ background: cfg.dot }}
-        >
+        <span style={{
+          background: cfg.dot, color: "#fff",
+          borderRadius: 20, padding: "2px 9px",
+          fontSize: 12, fontWeight: 700,
+        }}>
           {count}
         </span>
       </div>
 
       {/* Cards */}
-      <div className="flex-1 bg-[#FAFAF9] p-2.5 space-y-2 min-h-[180px]">
+      <div style={{
+        flex: 1, background: T.bgBase,
+        padding: 10, display: "flex", flexDirection: "column", gap: 8,
+        minHeight: 160,
+      }}>
         {items.length === 0 && (
-          <div className="flex items-center justify-center h-20">
-            <p className="text-[12px] text-[#D6D3CF]">Nothing here</p>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 80 }}>
+            <span style={{ fontSize: 12, color: T.text4 }}>Nothing here</span>
           </div>
         )}
         {items.map(({ c, next, days, activeCount }) => (
-          <Link
-            key={c.id}
-            href={`/dashboard/clients/${c.id}`}
-            className="block bg-white rounded-lg border border-[#E8E6E3] p-3 hover:border-[#D6D3CF] hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition-all group"
-          >
-            <div className="flex items-start justify-between gap-2">
-              <p className="text-[12px] font-semibold text-[#1C1917] leading-tight">{c.name}</p>
-              <ArrowRight size={12} className="text-[#D6D3CF] group-hover:text-[#A8A29E] flex-shrink-0 mt-0.5 transition-colors" />
-            </div>
-            {c.pan && <p className="text-[10px] text-[#A8A29E] mt-0.5 font-mono">{c.pan}</p>}
-            {next && (
-              <div className="mt-2 pt-2 border-t border-[#F0EFED]">
-                <p className="text-[11px] text-[#57534E]">{formatComplianceType(next.compliance_type)}</p>
-                <p className="text-[11px] font-semibold mt-0.5" style={{
-                  color: days !== null && days < 0 ? "#DC2626" : days !== null && days <= 5 ? "#D97706" : "#A8A29E",
-                }}>
-                  {days !== null && days < 0
-                    ? `⚠ ${Math.abs(days)}d overdue`
-                    : days !== null ? `${days}d left · ${next.due_date}`
-                    : next.due_date}
-                </p>
+          <Link key={c.id} href={`/dashboard/clients/${c.id}`} style={{ textDecoration: "none" }}>
+            <div style={{
+              background: T.bgSurface,
+              border: `1px solid ${T.border}`,
+              borderRadius: 8,
+              padding: "10px 12px",
+              cursor: "pointer",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 3 }}>
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: cfg.dot, flexShrink: 0 }} />
+                <span style={{ fontSize: 12, fontWeight: 600, color: T.text1 }}>{c.name}</span>
               </div>
-            )}
-            {activeCount > 1 && (
-              <p className="text-[10px] text-[#A8A29E] mt-1.5">+{activeCount - 1} more task{activeCount > 2 ? "s" : ""}</p>
-            )}
+              {c.pan && (
+                <div style={{ fontSize: 10, color: T.text3, fontFamily: "monospace", marginLeft: 13, marginBottom: 4 }}>
+                  {c.pan}
+                </div>
+              )}
+              {next && (
+                <div style={{ marginLeft: 13 }}>
+                  <div style={{ fontSize: 11, color: T.text2 }}>{formatComplianceType(next.compliance_type)}</div>
+                  <div style={{
+                    fontSize: 11, fontWeight: 600, marginTop: 2,
+                    color: days !== null && days < 0 ? T.red : days !== null && days <= 5 ? T.amber : T.text3,
+                  }}>
+                    {days !== null && days < 0
+                      ? `⚠ ${Math.abs(days)}d overdue`
+                      : days !== null ? `${days}d left · ${next.due_date}`
+                      : next.due_date}
+                  </div>
+                </div>
+              )}
+              {activeCount > 1 && (
+                <div style={{ fontSize: 10, color: T.text3, marginLeft: 13, marginTop: 4 }}>
+                  +{activeCount - 1} more task{activeCount > 2 ? "s" : ""}
+                </div>
+              )}
+            </div>
           </Link>
         ))}
       </div>

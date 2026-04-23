@@ -2,123 +2,98 @@ import { getClient, getTasksForClient, getAuditLogsForClient } from "@/lib/data"
 import { formatComplianceType, daysUntilDue, getRiskLevel, getPenaltyPerDay } from "@/lib/utils";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Send, FileText, Mail, Phone } from "lucide-react";
+import { T, S } from "@/lib/tokens";
 import AddTaskForm from "./AddTaskForm";
 
-export default async function ClientDetailPage({
-  params,
-}: { params: Promise<{ clientId: string }> }) {
+export default async function ClientDetailPage({ params }: { params: Promise<{ clientId: string }> }) {
   const { clientId } = await params;
-  const [client, tasks, logs] = await Promise.all([
-    getClient(clientId), getTasksForClient(clientId), getAuditLogsForClient(clientId),
-  ]);
+  const [client, tasks, logs] = await Promise.all([getClient(clientId), getTasksForClient(clientId), getAuditLogsForClient(clientId)]);
   if (!client) notFound();
 
-  const active  = tasks.filter((t) => t.status !== "filed");
-  const filed   = tasks.filter((t) => t.status === "filed");
-  const risk    = getRiskLevel(active);
-
-  const penalty = active
-    .filter((t) => daysUntilDue(t.due_date) < 0)
-    .reduce((s, t) => s + getPenaltyPerDay(t.compliance_type) * Math.abs(daysUntilDue(t.due_date)), 0);
+  const active = tasks.filter(t => t.status !== "filed");
+  const filed  = tasks.filter(t => t.status === "filed");
+  const risk   = getRiskLevel(active);
+  const penalty = active.filter(t => daysUntilDue(t.due_date) < 0).reduce((s, t) => s + getPenaltyPerDay(t.compliance_type) * Math.abs(daysUntilDue(t.due_date)), 0);
 
   const RISK = {
-    red:    { label: "Critical",      bg: "#FEF2F2", border: "#FECACA", text: "#991B1B", dot: "#DC2626" },
-    yellow: { label: "Awaiting Docs", bg: "#FFFBEB", border: "#FDE68A", text: "#92400E", dot: "#D97706" },
-    green:  { label: "On Track",      bg: "#ECFDF5", border: "#A7F3D0", text: "#065F46", dot: "#059669" },
+    red:    { label: "Critical",      bg: T.redLight,   border: T.redBorder,   text: T.redText,   dot: T.red   },
+    yellow: { label: "Awaiting Docs", bg: T.amberLight, border: T.amberBorder, text: T.amberText, dot: T.amber },
+    green:  { label: "On Track",      bg: T.greenLight, border: T.greenBorder, text: T.greenText, dot: T.green },
   }[risk];
 
   const STATUS: Record<string, { bg: string; text: string; label: string }> = {
-    pending:       { bg: "#F5F5F4", text: "#57534E", label: "Pending" },
-    waiting_docs:  { bg: "#FFFBEB", text: "#92400E", label: "Waiting Docs" },
-    docs_received: { bg: "#EFF6FF", text: "#1E40AF", label: "Docs Received" },
-    in_progress:   { bg: "#EFF6FF", text: "#1E40AF", label: "In Progress" },
-    review_ready:  { bg: "#EDE9FE", text: "#5B21B6", label: "Review Ready" },
-    filed:         { bg: "#ECFDF5", text: "#065F46", label: "Filed ✓" },
-    overdue:       { bg: "#FEF2F2", text: "#991B1B", label: "Overdue" },
+    pending:       { bg: T.bgSubtle,   text: T.text2,      label: "Pending"       },
+    waiting_docs:  { bg: T.amberLight, text: T.amberText,  label: "Waiting Docs"  },
+    docs_received: { bg: T.blueLight,  text: T.blueText,   label: "Docs Received" },
+    in_progress:   { bg: T.blueLight,  text: T.blueText,   label: "In Progress"   },
+    review_ready:  { bg: T.brandLight, text: T.brandText,  label: "Review Ready"  },
+    filed:         { bg: T.greenLight, text: T.greenText,  label: "Filed ✓"       },
+    overdue:       { bg: T.redLight,   text: T.redText,    label: "Overdue"       },
   };
 
-  const AUDIT_CFG: Record<string, { icon: string; label: string; color: string }> = {
-    reminder_sent: { icon: "📤", label: "Reminder Sent",       color: "#6D28D9" },
-    delivered:     { icon: "✅", label: "Delivered",            color: "#059669" },
-    opened:        { icon: "👁️", label: "Opened by Client",    color: "#2563EB" },
-    doc_uploaded:  { icon: "📎", label: "Document Uploaded",   color: "#059669" },
-    filed:         { icon: "🏛️", label: "Return Filed",        color: "#065F46" },
-    escalated:     { icon: "🚨", label: "Escalated",           color: "#DC2626" },
+  const AUDIT: Record<string, { icon: string; label: string; color: string }> = {
+    reminder_sent: { icon: "📤", label: "Reminder Sent",     color: T.brand },
+    delivered:     { icon: "✅", label: "Delivered",          color: T.green },
+    opened:        { icon: "👁️", label: "Opened by Client",  color: T.blue  },
+    doc_uploaded:  { icon: "📎", label: "Document Uploaded", color: T.green },
+    filed:         { icon: "🏛️", label: "Return Filed",      color: T.greenText },
+    escalated:     { icon: "🚨", label: "Escalated",         color: T.red   },
   };
 
   return (
-    <div className="p-7 max-w-[1080px]">
+    <div style={{ padding: 28, maxWidth: 1060 }}>
 
       {/* Header */}
-      <div className="flex items-start justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <Link href="/dashboard/clients" className="w-8 h-8 rounded-lg bg-white border border-[#E8E6E3] flex items-center justify-center text-[#57534E] hover:bg-[#F5F5F4] transition-colors">
-            <ArrowLeft size={14} />
-          </Link>
-          <div className="w-10 h-10 rounded-xl bg-[#EDE9FE] flex items-center justify-center text-[15px] font-bold text-[#6D28D9]">
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <Link href="/dashboard/clients" style={{ ...S.btnSecondary, padding: "7px 10px", fontSize: 16 }}>←</Link>
+          <div style={{ width: 40, height: 40, borderRadius: 10, background: T.brandLight, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 700, color: T.brand }}>
             {client.name.charAt(0)}
           </div>
           <div>
-            <h1 className="text-[20px] font-semibold text-[#1C1917] tracking-tight">{client.name}</h1>
-            <div className="flex items-center gap-3 mt-0.5">
-              {client.pan   && <span className="text-[11px] font-mono text-[#A8A29E]">PAN: {client.pan}</span>}
-              {client.gstin && <span className="text-[11px] font-mono text-[#A8A29E]">GSTIN: {client.gstin}</span>}
+            <h1 style={{ fontSize: 20, fontWeight: 700, color: T.text1, letterSpacing: "-0.02em" }}>{client.name}</h1>
+            <div style={{ display: "flex", gap: 12, marginTop: 3 }}>
+              {client.pan   && <span style={{ fontSize: 11, fontFamily: "monospace", color: T.text3 }}>PAN: {client.pan}</span>}
+              {client.gstin && <span style={{ fontSize: 11, fontFamily: "monospace", color: T.text3 }}>GSTIN: {client.gstin}</span>}
+              {client.email && <span style={{ fontSize: 11, color: T.text3 }}>{client.email}</span>}
             </div>
           </div>
         </div>
-
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[12px] font-semibold" style={{ background: RISK.bg, borderColor: RISK.border, color: RISK.text }}>
-            <span className="w-1.5 h-1.5 rounded-full" style={{ background: RISK.dot }} />
-            {RISK.label}
+        <div style={{ display: "flex", gap: 8 }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 8, border: `1px solid ${RISK.border}`, background: RISK.bg, color: RISK.text, fontSize: 12, fontWeight: 600 }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: RISK.dot }} />{RISK.label}
           </span>
-          <Link href={`/dashboard/clients/${clientId}/remind`} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#6D28D9] text-white text-[13px] font-medium hover:bg-[#5B21B6] transition-colors">
-            <Send size={13} /> Send Reminder
-          </Link>
-          <Link href={`/dashboard/reports/${clientId}`} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-[#E8E6E3] text-[#1C1917] text-[13px] font-medium hover:bg-[#F5F5F4] transition-colors">
-            <FileText size={13} /> Liability Report
-          </Link>
+          <Link href={`/dashboard/clients/${clientId}/remind`} style={S.btnPrimary}>Send Reminder</Link>
+          <Link href={`/dashboard/reports/${clientId}`} style={S.btnSecondary}>Liability Report</Link>
         </div>
       </div>
 
-      {/* Contact strip */}
-      <div className="flex items-center gap-4 mb-5 p-3.5 bg-white rounded-xl border border-[#E8E6E3]">
-        {client.email && (
-          <div className="flex items-center gap-2 text-[12px] text-[#57534E]">
-            <Mail size={12} className="text-[#A8A29E]" /> {client.email}
-          </div>
-        )}
-        {client.phone && (
-          <div className="flex items-center gap-2 text-[12px] text-[#57534E]">
-            <Phone size={12} className="text-[#A8A29E]" /> {client.phone}
-          </div>
-        )}
-        {penalty > 0 && (
-          <div className="ml-auto flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#FEF2F2] border border-[#FECACA]">
-            <span className="text-[12px] font-bold text-[#991B1B]">⚠ Penalty Exposure: ₹{penalty.toLocaleString("en-IN")}</span>
-            <span className="text-[11px] text-[#DC2626]">accruing daily</span>
-          </div>
-        )}
-      </div>
+      {/* Penalty */}
+      {penalty > 0 && (
+        <div style={{ background: T.redLight, border: `1px solid ${T.redBorder}`, borderRadius: 10, padding: "10px 16px", marginBottom: 18, display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 16 }}>⚠️</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: T.redText }}>Penalty Exposure: ₹{penalty.toLocaleString("en-IN")}</span>
+          <span style={{ fontSize: 12, color: T.red }}>accruing daily — send reminder immediately</span>
+        </div>
+      )}
 
-      {/* 2-col layout */}
-      <div className="grid grid-cols-[1fr_280px] gap-5">
+      {/* 2-col */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 18 }}>
 
         {/* Left */}
-        <div className="space-y-4">
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
 
           {/* Active tasks */}
-          <div className="bg-white rounded-xl border border-[#E8E6E3] overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
-            <div className="px-5 py-3.5 border-b border-[#F0EFED] flex items-center justify-between">
-              <span className="text-[13px] font-semibold text-[#1C1917]">Active Tasks</span>
-              <span className="text-[11px] text-[#A8A29E]">{active.length} pending</span>
+          <div style={{ ...S.card, padding: 0, overflow: "hidden" }}>
+            <div style={{ padding: "13px 18px", borderBottom: `1px solid ${T.bgMuted}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: T.text1 }}>Active Tasks</span>
+              <span style={{ fontSize: 11, color: T.text3 }}>{active.length} pending</span>
             </div>
-            <table className="w-full">
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
-                <tr className="bg-[#FAFAF9] border-b border-[#F0EFED]">
-                  {["Compliance", "Period", "Due Date", "Status"].map((h) => (
-                    <th key={h} className="text-left px-5 py-2.5 text-[10px] font-semibold text-[#A8A29E] uppercase tracking-wider">{h}</th>
+                <tr style={{ background: T.bgSubtle, borderBottom: `1px solid ${T.bgMuted}` }}>
+                  {["Compliance", "Period", "Due Date", "Status"].map(h => (
+                    <th key={h} style={{ textAlign: "left", padding: "9px 18px", ...S.label }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -128,32 +103,24 @@ export default async function ClientDetailPage({
                   const p = getPenaltyPerDay(t.compliance_type);
                   const s = STATUS[t.status] ?? STATUS.pending;
                   return (
-                    <tr key={t.id} className={`border-b border-[#F5F5F4] last:border-0 ${d < 0 ? "bg-[#FFFAFA]" : "hover:bg-[#FAFAF9]"} transition-colors`}>
-                      <td className="px-5 py-3">
-                        <p className="text-[13px] font-medium text-[#1C1917]">{formatComplianceType(t.compliance_type)}</p>
-                        {p > 0 && <p className="text-[10px] text-[#A8A29E] mt-0.5">₹{p}/day penalty</p>}
+                    <tr key={t.id} style={{ borderBottom: i < active.length - 1 ? `1px solid ${T.bgSubtle}` : "none", background: d < 0 ? "#FFFAFA" : "transparent" }}>
+                      <td style={{ padding: "12px 18px" }}>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: T.text1 }}>{formatComplianceType(t.compliance_type)}</div>
+                        {p > 0 && <div style={{ fontSize: 10, color: T.text3, marginTop: 2 }}>₹{p}/day penalty</div>}
                       </td>
-                      <td className="px-5 py-3 text-[12px] text-[#57534E]">{t.period}</td>
-                      <td className="px-5 py-3">
-                        <p className="text-[13px] font-semibold" style={{ color: d < 0 ? "#DC2626" : d <= 5 ? "#D97706" : "#1C1917" }}>
-                          {t.due_date}
-                        </p>
-                        <p className="text-[10px] mt-0.5" style={{ color: d < 0 ? "#DC2626" : "#A8A29E" }}>
-                          {d < 0 ? `${Math.abs(d)}d overdue` : `${d}d remaining`}
-                        </p>
+                      <td style={{ padding: "12px 18px", fontSize: 12, color: T.text2 }}>{t.period}</td>
+                      <td style={{ padding: "12px 18px" }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: d < 0 ? T.red : d <= 5 ? T.amber : T.text1 }}>{t.due_date}</div>
+                        <div style={{ fontSize: 10, color: d < 0 ? T.red : T.text3, marginTop: 2 }}>{d < 0 ? `${Math.abs(d)}d overdue` : `${d}d remaining`}</div>
                       </td>
-                      <td className="px-5 py-3">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold" style={{ background: s.bg, color: s.text }}>
-                          {s.label}
-                        </span>
+                      <td style={{ padding: "12px 18px" }}>
+                        <span style={{ fontSize: 10, fontWeight: 600, padding: "3px 8px", borderRadius: 20, background: s.bg, color: s.text }}>{s.label}</span>
                       </td>
                     </tr>
                   );
                 })}
                 {active.length === 0 && (
-                  <tr><td colSpan={4} className="px-5 py-8 text-center text-[13px] text-[#A8A29E]">
-                    ✅ All tasks filed. Client is fully compliant.
-                  </td></tr>
+                  <tr><td colSpan={4} style={{ padding: "28px 18px", textAlign: "center", fontSize: 13, color: T.text3 }}>✅ All tasks filed. Client is fully compliant.</td></tr>
                 )}
               </tbody>
             </table>
@@ -163,20 +130,20 @@ export default async function ClientDetailPage({
 
           {/* Filed */}
           {filed.length > 0 && (
-            <div className="bg-white rounded-xl border border-[#E8E6E3] overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
-              <div className="px-5 py-3.5 border-b border-[#F0EFED] flex items-center justify-between">
-                <span className="text-[13px] font-semibold text-[#1C1917]">Filed Returns</span>
-                <span className="text-[11px] font-semibold text-[#059669]">{filed.length} completed</span>
+            <div style={{ ...S.card, padding: 0, overflow: "hidden" }}>
+              <div style={{ padding: "13px 18px", borderBottom: `1px solid ${T.bgMuted}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: T.text1 }}>Filed Returns</span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: T.green }}>{filed.length} completed</span>
               </div>
               {filed.map((t, i) => (
-                <div key={t.id} className={`px-5 py-3 flex items-center justify-between ${i < filed.length - 1 ? "border-b border-[#F5F5F4]" : ""}`}>
+                <div key={t.id} style={{ padding: "11px 18px", borderBottom: i < filed.length - 1 ? `1px solid ${T.bgSubtle}` : "none", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                   <div>
-                    <p className="text-[13px] font-medium text-[#57534E]">{formatComplianceType(t.compliance_type)}</p>
-                    <p className="text-[11px] text-[#A8A29E]">{t.period}</p>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: T.text2 }}>{formatComplianceType(t.compliance_type)}</div>
+                    <div style={{ fontSize: 11, color: T.text3 }}>{t.period}</div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-[11px] text-[#A8A29E]">{t.due_date}</span>
-                    <span className="px-2 py-0.5 rounded-full bg-[#ECFDF5] text-[#065F46] text-[10px] font-semibold">Filed ✓</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ fontSize: 11, color: T.text3 }}>{t.due_date}</span>
+                    <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 20, background: T.greenLight, color: T.greenText }}>Filed ✓</span>
                   </div>
                 </div>
               ))}
@@ -185,33 +152,33 @@ export default async function ClientDetailPage({
         </div>
 
         {/* Right — audit trail */}
-        <div className="space-y-4">
-          <div className="bg-white rounded-xl border border-[#E8E6E3] overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
-            <div className="px-4 py-3.5 border-b border-[#F0EFED]">
-              <p className="text-[13px] font-semibold text-[#1C1917]">Audit Trail</p>
-              <p className="text-[10px] text-[#A8A29E] mt-0.5">Immutable · Court-admissible</p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ ...S.card, padding: 0, overflow: "hidden" }}>
+            <div style={{ padding: "13px 16px", borderBottom: `1px solid ${T.bgMuted}` }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: T.text1 }}>Audit Trail</div>
+              <div style={{ fontSize: 10, color: T.text3, marginTop: 2 }}>Immutable · Court-admissible</div>
             </div>
-            <div className="p-4 max-h-[420px] overflow-y-auto">
+            <div style={{ padding: 14, maxHeight: 400, overflowY: "auto" }}>
               {logs.length === 0 ? (
-                <p className="text-[12px] text-[#A8A29E] text-center py-6">No activity yet</p>
+                <div style={{ textAlign: "center", padding: "20px 0", fontSize: 12, color: T.text3 }}>No activity yet</div>
               ) : (
-                <div className="relative">
-                  <div className="absolute left-[10px] top-2 bottom-2 w-px bg-[#F0EFED]" />
-                  <div className="space-y-4">
-                    {logs.map((log) => {
-                      const cfg = AUDIT_CFG[log.action] ?? { icon: "•", label: log.action, color: "#57534E" };
+                <div style={{ position: "relative" }}>
+                  <div style={{ position: "absolute", left: 10, top: 6, bottom: 6, width: 1, background: T.bgMuted }} />
+                  <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                    {logs.map(log => {
+                      const cfg = AUDIT[log.action] ?? { icon: "•", label: log.action, color: T.text2 };
                       return (
-                        <div key={log.id} className="flex gap-3 relative">
-                          <div className="w-5 h-5 rounded-full bg-white border border-[#E8E6E3] flex items-center justify-center text-[10px] flex-shrink-0 z-10">
+                        <div key={log.id} style={{ display: "flex", gap: 10 }}>
+                          <div style={{ width: 20, height: 20, borderRadius: "50%", background: T.bgSurface, border: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, flexShrink: 0, zIndex: 1 }}>
                             {cfg.icon}
                           </div>
-                          <div className="flex-1 pb-1">
-                            <p className="text-[12px] font-semibold" style={{ color: cfg.color }}>{cfg.label}</p>
-                            {log.channel && <p className="text-[10px] text-[#A8A29E]">via {log.channel}</p>}
-                            {log.message_id && <p className="text-[10px] text-[#D6D3CF] font-mono truncate">{log.message_id}</p>}
-                            <p className="text-[10px] text-[#A8A29E] mt-0.5">
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: cfg.color }}>{cfg.label}</div>
+                            {log.channel && <div style={{ fontSize: 10, color: T.text3 }}>via {log.channel}</div>}
+                            {log.message_id && <div style={{ fontSize: 10, color: T.text4, fontFamily: "monospace", marginTop: 1 }}>{log.message_id}</div>}
+                            <div style={{ fontSize: 10, color: T.text3, marginTop: 2 }}>
                               {new Date(log.timestamp).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
-                            </p>
+                            </div>
                           </div>
                         </div>
                       );
@@ -222,12 +189,11 @@ export default async function ClientDetailPage({
             </div>
           </div>
 
-          {/* Compliance types */}
-          <div className="bg-white rounded-xl border border-[#E8E6E3] p-4 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
-            <p className="text-[10px] font-semibold text-[#A8A29E] uppercase tracking-wider mb-3">Applicable Compliances</p>
-            <div className="flex flex-wrap gap-1.5">
-              {client.compliance_types.map((t) => (
-                <span key={t} className="px-2 py-1 rounded-md bg-[#EDE9FE] text-[#5B21B6] text-[10px] font-medium border border-[#DDD6FE]">
+          <div style={{ ...S.card, padding: 14 }}>
+            <div style={{ ...S.label, marginBottom: 10 }}>Applicable Compliances</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+              {client.compliance_types.map(t => (
+                <span key={t} style={{ background: T.brandLight, color: T.brandText, fontSize: 10, fontWeight: 500, padding: "3px 8px", borderRadius: 6, border: `1px solid ${T.brandBorder}` }}>
                   {formatComplianceType(t)}
                 </span>
               ))}

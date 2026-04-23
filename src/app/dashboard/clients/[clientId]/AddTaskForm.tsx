@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatComplianceType } from "@/lib/utils";
-import { Plus } from "lucide-react";
+import { T, S } from "@/lib/tokens";
 
 export default function AddTaskForm({ clientId, complianceTypes }: { clientId: string; complianceTypes: string[] }) {
   const [open, setOpen] = useState(false);
@@ -11,48 +11,51 @@ export default function AddTaskForm({ clientId, complianceTypes }: { clientId: s
   const router = useRouter();
 
   async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
+    e.preventDefault(); setLoading(true);
     await new Promise(r => setTimeout(r, 600));
     setOpen(false); setLoading(false); router.refresh();
   }
 
   if (!open) return (
-    <button onClick={() => setOpen(true)} className="w-full flex items-center gap-2 px-4 py-2.5 rounded-xl border border-dashed border-[#D6D3CF] text-[12px] text-[#A8A29E] hover:border-[#6D28D9] hover:text-[#6D28D9] hover:bg-[#FAFAF9] transition-all">
-      <Plus size={13} /> Add compliance task
+    <button onClick={() => setOpen(true)} style={{
+      width: "100%", display: "flex", alignItems: "center", gap: 6,
+      padding: "10px 16px", borderRadius: 10,
+      border: `1px dashed ${T.borderStrong}`,
+      background: "transparent",
+      fontSize: 12, color: T.text3,
+    }}>
+      + Add compliance task
     </button>
   );
 
   return (
-    <form onSubmit={submit} className="bg-white rounded-xl border border-[#DDD6FE] p-5 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
-      <p className="text-[13px] font-semibold text-[#1C1917] mb-4">Add Compliance Task</p>
-      <div className="grid grid-cols-3 gap-3 mb-4">
+    <form onSubmit={submit} style={{ ...S.card, border: `1px solid ${T.brandBorder}`, padding: 18 }}>
+      <div style={{ fontSize: 13, fontWeight: 600, color: T.text1, marginBottom: 14 }}>Add Compliance Task</div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 14 }}>
         {[
           { label: "Compliance", content: (
-            <select value={form.compliance_type} onChange={e => setForm({...form, compliance_type: e.target.value})} required className="w-full border border-[#E8E6E3] rounded-lg px-3 py-2 text-[12px] text-[#1C1917] bg-white focus:outline-none focus:border-[#6D28D9]">
+            <select value={form.compliance_type} onChange={e => setForm({...form, compliance_type: e.target.value})} required style={S.input}>
               {complianceTypes.map(t => <option key={t} value={t}>{formatComplianceType(t)}</option>)}
             </select>
           )},
           { label: "Period", content: (
-            <input value={form.period} onChange={e => setForm({...form, period: e.target.value})} placeholder="e.g. 2026-04" required className="w-full border border-[#E8E6E3] rounded-lg px-3 py-2 text-[12px] text-[#1C1917] focus:outline-none focus:border-[#6D28D9]" />
+            <input value={form.period} onChange={e => setForm({...form, period: e.target.value})} placeholder="e.g. 2026-04" required style={S.input} />
           )},
           { label: "Due Date", content: (
-            <input type="date" value={form.due_date} onChange={e => setForm({...form, due_date: e.target.value})} required className="w-full border border-[#E8E6E3] rounded-lg px-3 py-2 text-[12px] text-[#1C1917] focus:outline-none focus:border-[#6D28D9]" />
+            <input type="date" value={form.due_date} onChange={e => setForm({...form, due_date: e.target.value})} required style={S.input} />
           )},
         ].map(({ label, content }) => (
           <div key={label}>
-            <label className="block text-[10px] font-semibold text-[#A8A29E] uppercase tracking-wider mb-1.5">{label}</label>
+            <label style={{ ...S.label, display: "block", marginBottom: 5 }}>{label}</label>
             {content}
           </div>
         ))}
       </div>
-      <div className="flex gap-2">
-        <button type="submit" disabled={loading} className="px-4 py-2 rounded-lg bg-[#6D28D9] text-white text-[12px] font-semibold hover:bg-[#5B21B6] disabled:opacity-50 transition-colors">
+      <div style={{ display: "flex", gap: 8 }}>
+        <button type="submit" disabled={loading} style={{ ...S.btnPrimary, opacity: loading ? 0.5 : 1 }}>
           {loading ? "Saving…" : "Add Task"}
         </button>
-        <button type="button" onClick={() => setOpen(false)} className="px-4 py-2 rounded-lg border border-[#E8E6E3] text-[#57534E] text-[12px] hover:bg-[#F5F5F4] transition-colors">
-          Cancel
-        </button>
+        <button type="button" onClick={() => setOpen(false)} style={S.btnSecondary}>Cancel</button>
       </div>
     </form>
   );

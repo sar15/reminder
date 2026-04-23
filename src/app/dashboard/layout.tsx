@@ -1,105 +1,142 @@
 import Link from "next/link";
-import {
-  LayoutDashboard, Users, ListChecks,
-  FileText, Settings, Shield,
-  Activity,
-} from "lucide-react";
+import { T } from "@/lib/tokens";
 
 const NAV = [
-  { href: "/dashboard",         icon: LayoutDashboard, label: "Dashboard"         },
-  { href: "/dashboard/clients", icon: Users,           label: "Clients"           },
-  { href: "/dashboard/tasks",   icon: ListChecks,      label: "Tasks"             },
-  { href: "/dashboard/reports", icon: FileText,        label: "Liability Reports" },
+  { href: "/dashboard",         icon: "⊞", label: "Dashboard"         },
+  { href: "/dashboard/clients", icon: "◎", label: "Clients"           },
+  { href: "/dashboard/tasks",   icon: "☑", label: "Tasks"             },
+  { href: "/dashboard/reports", icon: "⊡", label: "Liability Reports" },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const today = new Date().toLocaleDateString("en-IN", {
+    weekday: "long", day: "numeric", month: "long", year: "numeric",
+  });
+  const day = new Date().getDate();
+  const portalWarning = day >= 18 && day <= 22;
+
   return (
-    <div className="flex h-screen overflow-hidden bg-[#FAFAF9]">
+    <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: T.bgBase }}>
 
-      {/* ─── Sidebar ─── */}
-      <aside className="w-[220px] flex-shrink-0 flex flex-col bg-white border-r border-[#E8E6E3]">
+      {/* ── Sidebar ── */}
+      <aside style={{
+        width: 216,
+        flexShrink: 0,
+        background: T.bgSurface,
+        borderRight: `1px solid ${T.border}`,
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+      }}>
 
-        {/* Logo mark */}
-        <div className="px-5 pt-5 pb-4">
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-[#6D28D9] flex items-center justify-center flex-shrink-0">
-              <Shield size={13} className="text-white" strokeWidth={2.5} />
+        {/* Logo */}
+        <div style={{ padding: "18px 16px 14px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{
+              width: 28, height: 28,
+              background: T.brand,
+              borderRadius: 8,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 14, color: "#fff", fontWeight: 700, flexShrink: 0,
+            }}>
+              D
             </div>
-            <div>
-              <span className="text-[13px] font-semibold text-[#1C1917] tracking-tight">
-                DeadlineShield
-              </span>
-            </div>
+            <span style={{ fontSize: 14, fontWeight: 700, color: T.text1, letterSpacing: "-0.02em" }}>
+              DeadlineShield
+            </span>
           </div>
         </div>
 
-        {/* Firm pill */}
-        <div className="px-3 pb-3">
-          <div className="px-3 py-2 rounded-lg bg-[#F5F5F4]">
-            <p className="text-[10px] font-medium text-[#A8A29E] uppercase tracking-wider">Firm</p>
-            <p className="text-[12px] font-semibold text-[#1C1917] mt-0.5">Demo CA Firm</p>
+        {/* Firm */}
+        <div style={{ padding: "0 10px 12px" }}>
+          <div style={{ background: T.bgSubtle, borderRadius: 8, padding: "8px 10px" }}>
+            <div style={{ fontSize: 10, fontWeight: 600, color: T.text3, textTransform: "uppercase", letterSpacing: "0.06em" }}>Firm</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: T.text1, marginTop: 2 }}>Demo CA Firm</div>
           </div>
         </div>
 
-        <div className="h-px bg-[#F0EFED] mx-3" />
+        <div style={{ height: 1, background: T.bgMuted, margin: "0 10px" }} />
 
         {/* Nav */}
-        <nav className="flex-1 px-2 py-3 space-y-0.5">
-          <p className="px-3 pt-1 pb-2 text-[10px] font-semibold text-[#A8A29E] uppercase tracking-wider">
+        <nav style={{ flex: 1, padding: "10px 8px", display: "flex", flexDirection: "column", gap: 2 }}>
+          <div style={{ fontSize: 10, fontWeight: 600, color: T.text3, textTransform: "uppercase", letterSpacing: "0.06em", padding: "6px 8px 4px" }}>
             Workspace
-          </p>
-          {NAV.map(({ href, icon: Icon, label }) => (
-            <Link
-              key={href}
-              href={href}
-              className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium text-[#57534E] hover:bg-[#F5F5F4] hover:text-[#1C1917] group transition-colors"
-            >
-              <Icon size={14} className="text-[#A8A29E] group-hover:text-[#6D28D9] transition-colors flex-shrink-0" />
-              {label}
-            </Link>
+          </div>
+          {NAV.map(({ href, icon, label }) => (
+            <NavLink key={href} href={href} icon={icon} label={label} />
           ))}
         </nav>
 
-        {/* Bottom */}
-        <div className="px-2 pb-4 space-y-1">
-          {/* Portal health */}
-          <PortalHealth />
+        {/* Portal health */}
+        <div style={{ padding: "8px 10px" }}>
+          <div style={{
+            background: portalWarning ? T.amberLight : T.greenLight,
+            border: `1px solid ${portalWarning ? T.amberBorder : T.greenBorder}`,
+            borderRadius: 8,
+            padding: "8px 10px",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <div style={{
+                width: 6, height: 6, borderRadius: "50%",
+                background: portalWarning ? T.amber : T.green,
+              }} />
+              <span style={{ fontSize: 11, fontWeight: 600, color: portalWarning ? T.amberText : T.greenText }}>
+                GST Portal: {portalWarning ? "Slow" : "Stable"}
+              </span>
+            </div>
+            <div style={{ fontSize: 10, color: portalWarning ? T.amber : T.green, marginTop: 2, paddingLeft: 12 }}>
+              {portalWarning ? "File within 6 hours" : "Safe to file now"}
+            </div>
+          </div>
+        </div>
 
-          <div className="h-px bg-[#F0EFED] mx-1 my-2" />
+        <div style={{ height: 1, background: T.bgMuted, margin: "4px 10px" }} />
 
-          <Link
-            href="/dashboard/settings"
-            className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium text-[#57534E] hover:bg-[#F5F5F4] hover:text-[#1C1917] group transition-colors"
-          >
-            <Settings size={14} className="text-[#A8A29E] group-hover:text-[#6D28D9] transition-colors" />
-            Settings
-          </Link>
+        <div style={{ padding: "4px 8px 12px" }}>
+          <NavLink href="/dashboard/settings" icon="⚙" label="Settings" />
         </div>
       </aside>
 
-      {/* ─── Main ─── */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      {/* ── Main ── */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
         {/* Topbar */}
-        <header className="h-12 bg-white border-b border-[#E8E6E3] flex items-center justify-between px-6 flex-shrink-0">
-          <p className="text-[12px] text-[#A8A29E]">
-            {new Date().toLocaleDateString("en-IN", {
-              weekday: "long", day: "numeric", month: "long", year: "numeric",
-            })}
-          </p>
-          <div className="flex items-center gap-3">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#FFFBEB] border border-[#FDE68A] text-[11px] font-medium text-[#92400E]">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#D97706]" />
+        <header style={{
+          height: 48,
+          background: T.bgSurface,
+          borderBottom: `1px solid ${T.border}`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "0 24px",
+          flexShrink: 0,
+        }}>
+          <span style={{ fontSize: 12, color: T.text3 }}>{today}</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{
+              display: "inline-flex", alignItems: "center", gap: 5,
+              padding: "3px 10px",
+              background: T.amberLight,
+              border: `1px solid ${T.amberBorder}`,
+              borderRadius: 20,
+              fontSize: 11, fontWeight: 600, color: T.amberText,
+            }}>
+              <span style={{ width: 5, height: 5, borderRadius: "50%", background: T.amber }} />
               Demo Mode
             </span>
-            <div className="w-7 h-7 rounded-full bg-[#EDE9FE] flex items-center justify-center text-[11px] font-bold text-[#6D28D9]">
+            <div style={{
+              width: 28, height: 28, borderRadius: "50%",
+              background: T.brandLight,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 11, fontWeight: 700, color: T.brand,
+            }}>
               CA
             </div>
           </div>
         </header>
 
-        {/* Content */}
-        <main className="flex-1 overflow-y-auto">
+        {/* Page */}
+        <main style={{ flex: 1, overflowY: "auto", background: T.bgBase }}>
           {children}
         </main>
       </div>
@@ -107,25 +144,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   );
 }
 
-function PortalHealth() {
-  const day = new Date().getDate();
-  const isWarning = day >= 18 && day <= 22;
-
+function NavLink({ href, icon, label }: { href: string; icon: string; label: string }) {
   return (
-    <div className={`mx-1 px-3 py-2.5 rounded-lg border ${
-      isWarning
-        ? "bg-[#FFFBEB] border-[#FDE68A]"
-        : "bg-[#ECFDF5] border-[#A7F3D0]"
-    }`}>
-      <div className="flex items-center gap-2">
-        <Activity size={11} className={isWarning ? "text-[#D97706]" : "text-[#059669]"} />
-        <span className={`text-[11px] font-semibold ${isWarning ? "text-[#92400E]" : "text-[#065F46]"}`}>
-          GST Portal: {isWarning ? "Slow" : "Stable"}
-        </span>
-      </div>
-      <p className={`text-[10px] mt-0.5 pl-[18px] ${isWarning ? "text-[#D97706]" : "text-[#059669]"}`}>
-        {isWarning ? "File within 6 hours" : "Safe to file now"}
-      </p>
-    </div>
+    <Link href={href} style={{
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      padding: "8px 10px",
+      borderRadius: 7,
+      fontSize: 13,
+      fontWeight: 500,
+      color: "#57534E",
+      textDecoration: "none",
+    }}
+    onMouseEnter={e => {
+      (e.currentTarget as HTMLElement).style.background = "#F5F5F4";
+      (e.currentTarget as HTMLElement).style.color = "#1C1917";
+    }}
+    onMouseLeave={e => {
+      (e.currentTarget as HTMLElement).style.background = "transparent";
+      (e.currentTarget as HTMLElement).style.color = "#57534E";
+    }}
+    >
+      <span style={{ fontSize: 14, width: 16, textAlign: "center", flexShrink: 0 }}>{icon}</span>
+      {label}
+    </Link>
   );
 }

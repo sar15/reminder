@@ -1,104 +1,79 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { Shield, ArrowRight } from "lucide-react";
+import { T, S } from "@/lib/tokens";
 
 export default function LoginPage() {
   const router = useRouter();
-
   return (
-    <div className="min-h-screen bg-[#FAFAF9] flex items-center justify-center p-6">
-      <div className="w-full max-w-[900px] grid grid-cols-[1fr_400px] gap-12 items-center">
+    <div style={{ minHeight: "100vh", background: T.bgBase, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+      <div style={{ width: "100%", maxWidth: 880, display: "grid", gridTemplateColumns: "1fr 380px", gap: 64, alignItems: "center" }}>
 
-        {/* Left — value */}
+        {/* Left */}
         <div>
-          <div className="flex items-center gap-2.5 mb-8">
-            <div className="w-8 h-8 rounded-lg bg-[#6D28D9] flex items-center justify-center">
-              <Shield size={15} className="text-white" strokeWidth={2.5} />
-            </div>
-            <span className="text-[15px] font-semibold text-[#1C1917] tracking-tight">DeadlineShield</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 32 }}>
+            <div style={{ width: 32, height: 32, background: T.brand, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, color: "#fff", fontWeight: 700 }}>D</div>
+            <span style={{ fontSize: 15, fontWeight: 700, color: T.text1, letterSpacing: "-0.02em" }}>DeadlineShield</span>
           </div>
-
-          <h1 className="text-[36px] font-bold text-[#1C1917] leading-[1.15] tracking-tight mb-4">
-            Stop getting blamed<br />for penalties you<br />
-            <span className="text-[#6D28D9]">didn't cause.</span>
+          <h1 style={{ fontSize: 38, fontWeight: 800, color: T.text1, lineHeight: 1.15, letterSpacing: "-0.04em", marginBottom: 16 }}>
+            Stop getting blamed<br />for penalties you<br /><span style={{ color: T.brand }}>didn't cause.</span>
           </h1>
-
-          <p className="text-[15px] text-[#57534E] leading-relaxed mb-8 max-w-[420px]">
-            Built for Indian CA firms. Automated reminders, document collection,
-            and timestamped legal proof — all in one place.
+          <p style={{ fontSize: 15, color: T.text2, lineHeight: 1.7, marginBottom: 28, maxWidth: 400 }}>
+            Built for Indian CA firms. Automated reminders, document collection, and timestamped legal proof — all in one place.
           </p>
-
-          <div className="space-y-3">
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {[
-              { icon: "🛡️", text: "Court-admissible proof of every reminder sent" },
-              { icon: "📱", text: "Client magic link portal — no login, no friction" },
-              { icon: "🔴", text: "Risk heatmap — focus only on critical clients" },
-              { icon: "📄", text: "One-click Liability Report PDF for ICAI disputes" },
-              { icon: "🔒", text: "1-to-1 only — no CC, no BCC, no privacy breach" },
-            ].map(f => (
-              <div key={f.text} className="flex items-center gap-3">
-                <span className="text-[16px]">{f.icon}</span>
-                <span className="text-[13px] text-[#57534E]">{f.text}</span>
+              ["🛡️", "Court-admissible proof of every reminder sent"],
+              ["📱", "Client magic link portal — no login, no friction"],
+              ["🔴", "Risk heatmap — focus only on critical clients"],
+              ["📄", "One-click Liability Report PDF for ICAI disputes"],
+              ["🔒", "1-to-1 only — no CC, no BCC, no privacy breach"],
+            ].map(([icon, text]) => (
+              <div key={text} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 16 }}>{icon}</span>
+                <span style={{ fontSize: 13, color: T.text2 }}>{text}</span>
               </div>
             ))}
           </div>
-
-          <p className="text-[11px] text-[#A8A29E] mt-8">
-            Rs.1,050/month total infra cost · Profitable with 1 paying customer
-          </p>
+          <p style={{ fontSize: 11, color: T.text3, marginTop: 24 }}>Rs.1,050/month total infra cost · Profitable with 1 paying customer</p>
         </div>
 
-        {/* Right — login card */}
-        <div className="bg-white rounded-2xl border border-[#E8E6E3] p-8 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
-          <h2 className="text-[18px] font-semibold text-[#1C1917] mb-1">Welcome back</h2>
-          <p className="text-[13px] text-[#A8A29E] mb-6">Sign in to your firm dashboard</p>
+        {/* Right — card */}
+        <div style={{ background: T.bgSurface, borderRadius: 16, border: `1px solid ${T.border}`, padding: 28, boxShadow: T.shadowMd }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: T.text1, marginBottom: 4, letterSpacing: "-0.02em" }}>Welcome back</h2>
+          <p style={{ fontSize: 13, color: T.text3, marginBottom: 22 }}>Sign in to your firm dashboard</p>
 
           {/* Demo */}
-          <div className="rounded-xl bg-[#FFFBEB] border border-[#FDE68A] p-4 mb-5">
-            <p className="text-[11px] font-semibold text-[#92400E] mb-1">⚡ Demo Mode</p>
-            <p className="text-[12px] text-[#78350F] mb-3 leading-relaxed">
-              No setup needed. Explore with 5 real-looking CA clients and the full workflow.
-            </p>
-            <button
-              onClick={() => router.push("/dashboard")}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#6D28D9] text-white text-[13px] font-semibold hover:bg-[#5B21B6] transition-colors shadow-[0_1px_4px_rgba(109,40,217,0.3)]"
-            >
-              Enter Demo Dashboard <ArrowRight size={13} />
+          <div style={{ background: T.amberLight, border: `1px solid ${T.amberBorder}`, borderRadius: 10, padding: "14px 16px", marginBottom: 18 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: T.amberText, marginBottom: 4 }}>⚡ Demo Mode</div>
+            <div style={{ fontSize: 12, color: "#78350F", marginBottom: 12, lineHeight: 1.5 }}>No setup needed. Explore with 5 real-looking CA clients and the full workflow.</div>
+            <button onClick={() => router.push("/dashboard")} style={{ ...S.btnPrimary, width: "100%", justifyContent: "center", padding: "10px 16px" }}>
+              Enter Demo Dashboard →
             </button>
           </div>
 
-          <div className="flex items-center gap-3 mb-5">
-            <div className="flex-1 h-px bg-[#F0EFED]" />
-            <span className="text-[11px] text-[#A8A29E]">or sign in with email</span>
-            <div className="flex-1 h-px bg-[#F0EFED]" />
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+            <div style={{ flex: 1, height: 1, background: T.bgMuted }} />
+            <span style={{ fontSize: 11, color: T.text3 }}>or sign in with email</span>
+            <div style={{ flex: 1, height: 1, background: T.bgMuted }} />
           </div>
 
-          <div className="space-y-3">
-            <input
-              type="email"
-              placeholder="partner@yourfirm.com"
-              className="w-full border border-[#E8E6E3] rounded-lg px-4 py-2.5 text-[13px] text-[#1C1917] placeholder:text-[#A8A29E] focus:outline-none focus:border-[#6D28D9] transition-colors"
-            />
-            <button className="w-full py-2.5 rounded-lg bg-[#F5F5F4] border border-[#E8E6E3] text-[#57534E] text-[13px] font-medium hover:bg-[#E8E6E3] transition-colors">
-              Send Magic Link
-            </button>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <input type="email" placeholder="partner@yourfirm.com" style={S.input} />
+            <button style={{ ...S.btnSecondary, width: "100%", justifyContent: "center", padding: "10px 16px" }}>Send Magic Link</button>
           </div>
 
-          <p className="text-[11px] text-[#A8A29E] text-center mt-4">
-            No password needed · Secure link sent to your email
-          </p>
+          <p style={{ fontSize: 11, color: T.text3, textAlign: "center", marginTop: 12 }}>No password needed · Secure link sent to your email</p>
 
-          {/* Demo portal links */}
-          <div className="mt-6 pt-5 border-t border-[#F0EFED]">
-            <p className="text-[10px] font-semibold text-[#A8A29E] uppercase tracking-wider mb-2.5">Demo Client Portals</p>
-            <div className="space-y-1.5">
+          <div style={{ marginTop: 20, paddingTop: 18, borderTop: `1px solid ${T.bgMuted}` }}>
+            <div style={{ ...S.label, marginBottom: 8 }}>Demo Client Portals</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
               {[
                 { token: "demo-sharma", name: "Sharma Enterprises (Critical)" },
                 { token: "demo-patel",  name: "Patel Constructions (Critical)" },
                 { token: "demo-reddy",  name: "Reddy Tech Solutions (On Track)" },
               ].map(({ token, name }) => (
-                <a key={token} href={`/portal/${token}`} className="flex items-center gap-1.5 text-[12px] text-[#6D28D9] hover:text-[#5B21B6] transition-colors">
-                  <ArrowRight size={11} /> {name}
+                <a key={token} href={`/portal/${token}`} style={{ fontSize: 12, color: T.brand, display: "flex", alignItems: "center", gap: 4 }}>
+                  → {name}
                 </a>
               ))}
             </div>

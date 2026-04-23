@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "DeadlineShield",
+  title: "DeadlineShield — CA Compliance Platform",
   description: "Compliance Risk Mitigation Platform for Indian CA Firms",
 };
 
