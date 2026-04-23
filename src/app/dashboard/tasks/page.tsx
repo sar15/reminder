@@ -1,84 +1,139 @@
 import { getAllTasks, getClients } from "@/lib/data";
 import { formatComplianceType, daysUntilDue } from "@/lib/utils";
 import Link from "next/link";
+import { Send, ArrowRight } from "lucide-react";
 
 export default async function TasksPage() {
   const [tasks, clients] = await Promise.all([getAllTasks(), getClients()]);
-
   const clientMap = Object.fromEntries(clients.map((c) => [c.id, c]));
 
   const sorted = [...tasks].sort(
     (a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
   );
 
+  const overdue = sorted.filter((t) => daysUntilDue(t.due_date) < 0 && t.status !== "filed");
+  const upcoming = sorted.filter((t) => daysUntilDue(t.due_date) >= 0 && t.status !== "filed");
+  const filed = sorted.filter((t) => t.status === "filed");
+
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-5 max-w-6xl">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">All Tasks</h1>
-        <p className="text-gray-500 text-sm mt-1">Sorted by deadline proximity · {tasks.length} tasks</p>
+        <h1 className="text-xl font-bold text-slate-900">All Tasks</h1>
+        <p className="text-sm text-slate-500 mt-0.5">
+          Sorted by deadline · {overdue.length} overdue · {upcoming.length} upcoming · {filed.length} filed
+        </p>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b border-gray-200">
-            <tr>
-              <th className="text-left px-4 py-3 text-gray-600 font-medium">Client</th>
-              <th className="text-left px-4 py-3 text-gray-600 font-medium">Compliance</th>
-              <th className="text-left px-4 py-3 text-gray-600 font-medium">Period</th>
-              <th className="text-left px-4 py-3 text-gray-600 font-medium">Due Date</th>
-              <th className="text-left px-4 py-3 text-gray-600 font-medium">Status</th>
-              <th className="text-left px-4 py-3 text-gray-600 font-medium"></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {sorted.map((task) => {
-              const days = daysUntilDue(task.due_date);
-              const isUrgent = days <= 3 && task.status !== "filed";
-              const client = clientMap[task.client_id];
-              return (
-                <tr key={task.id} className={isUrgent ? "bg-red-50" : "hover:bg-gray-50"}>
-                  <td className="px-4 py-3 font-medium text-gray-900">{client?.name ?? "—"}</td>
-                  <td className="px-4 py-3 text-gray-700">{formatComplianceType(task.compliance_type)}</td>
-                  <td className="px-4 py-3 text-gray-500">{task.period}</td>
-                  <td className="px-4 py-3">
-                    <span className={days < 0 ? "text-red-600 font-bold" : days <= 5 ? "text-orange-600 font-medium" : "text-gray-700"}>
-                      {task.due_date}
-                    </span>
-                    <span className="text-xs text-gray-400 ml-1">
-                      {task.status === "filed" ? "" : days < 0 ? `(${Math.abs(days)}d overdue)` : `(${days}d)`}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <StatusBadge status={task.status} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <Link href={`/dashboard/clients/${task.client_id}`} className="text-indigo-600 hover:underline text-xs">
-                      View →
-                    </Link>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      {/* Overdue */}
+      {overdue.length > 0 && (
+        <Section title="⚠️ Overdue" count={overdue.length} accent="red">
+          {overdue.map((task) => (
+            <TaskRow key={task.id} task={task} client={clientMap[task.client_id]} />
+          ))}
+        </Section>
+      )}
+
+      {/* Upcoming */}
+      <Section title="📋 Upcoming" count={upcoming.length} accent="slate">
+        {upcoming.length === 0 ? (
+          <tr><td colSpan={6} className="px-5 py-8 text-center text-sm text-slate-400">No upcoming tasks.</td></tr>
+        ) : (
+          upcoming.map((task) => (
+            <TaskRow key={task.id} task={task} client={clientMap[task.client_id]} />
+          ))
+        )}
+      </Section>
+
+      {/* Filed */}
+      {filed.length > 0 && (
+        <Section title="✅ Filed" count={filed.length} accent="emerald">
+          {filed.map((task) => (
+            <TaskRow key={task.id} task={task} client={clientMap[task.client_id]} />
+          ))}
+        </Section>
+      )}
     </div>
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const styles: Record<string, string> = {
-    pending: "bg-gray-100 text-gray-600",
-    waiting_docs: "bg-yellow-100 text-yellow-700",
+function Section({ title, count, accent, children }: {
+  title: string; count: number; accent: string; children: React.ReactNode;
+}) {
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-slate-800">{title}</h2>
+        <span className="text-xs text-slate-400">{count} tasks</span>
+      </div>
+      <table className="w-full">
+        <thead>
+          <tr className="bg-slate-50 border-b border-slate-100">
+            <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Client</th>
+            <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Compliance</th>
+            <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Period</th>
+            <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Due Date</th>
+            <th className="text-left px-5 py-2.5 text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Status</th>
+            <th className="px-5 py-2.5" />
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100">{children}</tbody>
+      </table>
+    </div>
+  );
+}
+
+function TaskRow({ task, client }: { task: any; client: any }) {
+  const days = daysUntilDue(task.due_date);
+  const isOverdue = days < 0 && task.status !== "filed";
+
+  const statusMap: Record<string, string> = {
+    pending: "bg-slate-100 text-slate-600",
+    waiting_docs: "bg-amber-100 text-amber-700",
     docs_received: "bg-blue-100 text-blue-700",
     in_progress: "bg-blue-100 text-blue-700",
     review_ready: "bg-purple-100 text-purple-700",
-    filed: "bg-green-100 text-green-700",
+    filed: "bg-emerald-100 text-emerald-700",
     overdue: "bg-red-100 text-red-700",
   };
+
   return (
-    <span className={`text-xs px-2 py-0.5 rounded-full ${styles[status] ?? "bg-gray-100 text-gray-600"}`}>
-      {status.replace(/_/g, " ")}
-    </span>
+    <tr className={`${isOverdue ? "bg-red-50/40" : "hover:bg-slate-50"} transition-colors`}>
+      <td className="px-5 py-3">
+        <p className="text-sm font-medium text-slate-800">{client?.name ?? "—"}</p>
+      </td>
+      <td className="px-5 py-3 text-sm text-slate-700">{formatComplianceType(task.compliance_type)}</td>
+      <td className="px-5 py-3 text-sm text-slate-500">{task.period}</td>
+      <td className="px-5 py-3">
+        <p className={`text-sm font-medium ${isOverdue ? "text-red-600" : days <= 5 ? "text-orange-600" : "text-slate-700"}`}>
+          {task.due_date}
+        </p>
+        {task.status !== "filed" && (
+          <p className={`text-[10px] mt-0.5 ${isOverdue ? "text-red-500 font-medium" : "text-slate-400"}`}>
+            {isOverdue ? `${Math.abs(days)}d overdue` : `${days}d left`}
+          </p>
+        )}
+      </td>
+      <td className="px-5 py-3">
+        <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${statusMap[task.status] ?? "bg-slate-100 text-slate-600"}`}>
+          {task.status.replace(/_/g, " ")}
+        </span>
+      </td>
+      <td className="px-5 py-3">
+        <div className="flex items-center gap-2">
+          {isOverdue && (
+            <Link
+              href={`/dashboard/clients/${task.client_id}/remind`}
+              className="flex items-center gap-1 text-[10px] bg-red-100 text-red-700 px-2 py-1 rounded-lg hover:bg-red-200 transition"
+            >
+              <Send size={10} />
+              Remind
+            </Link>
+          )}
+          <Link href={`/dashboard/clients/${task.client_id}`} className="text-indigo-600 hover:text-indigo-800 transition">
+            <ArrowRight size={14} />
+          </Link>
+        </div>
+      </td>
+    </tr>
   );
 }
