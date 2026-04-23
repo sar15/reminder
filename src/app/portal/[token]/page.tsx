@@ -1,16 +1,13 @@
+import { createAdminClient } from "@/lib/supabase/admin";
 import { formatComplianceType } from "@/lib/utils";
-import { MOCK_CLIENTS, MOCK_TASKS } from "@/lib/mock-data";
 import { T } from "@/lib/tokens";
-
-const TOKEN_MAP: Record<string, string> = {
-  "demo-sharma": "1", "demo-mehta": "2", "demo-patel": "3", "demo-gupta": "4", "demo-reddy": "5",
-};
 
 const DOCS: Record<string, string[]> = {
   GSTR1:          ["Sales Register", "Invoice Summary", "E-way Bills (if any)"],
   GSTR3B:         ["Bank Statement", "Sales Register", "Purchase Register", "Expense Invoices"],
   TDS_PAYMENT:    ["Salary Sheet", "Vendor Payment Details"],
   TDS_RETURN_26Q: ["Vendor PAN Details", "Payment Summary", "TDS Certificates"],
+  TDS_RETURN_24Q: ["Salary Details", "TDS Certificates (Form 16)"],
   ITR_NON_AUDIT:  ["Bank Statements (all)", "Investment Proofs", "Form 16"],
   ITR_AUDIT:      ["Audited Balance Sheet", "P&L Statement", "Bank Statements"],
   ADVANCE_TAX:    ["Estimated Income Statement", "Previous Year ITR"],
@@ -23,20 +20,39 @@ const DOCS: Record<string, string[]> = {
 
 export default async function PortalPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
-  const clientId = TOKEN_MAP[token] ?? "1";
-  const client = MOCK_CLIENTS.find(c => c.id === clientId);
-  const tasks = MOCK_TASKS.filter(t => t.client_id === clientId);
-  const active = tasks.filter(t => t.status !== "filed");
-  const filed  = tasks.filter(t => t.status === "filed");
+  const supabase = createAdminClient();
 
-  if (!client) return (
-    <div style={{ minHeight: "100vh", background: T.bgBase, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ textAlign: "center" }}>
-        <p style={{ fontSize: 14, color: T.text2 }}>Invalid or expired link.</p>
-        <p style={{ fontSize: 12, color: T.text3, marginTop: 4 }}>Please contact your CA for a new link.</p>
+  // Validate token
+  const { data: link } = await supabase
+    .from("client_magic_links")
+    .select("*, clients(*)")
+    .eq("token", token)
+    .gt("expires_at", new Date().toISOString())
+    .single();
+
+  if (!link) {
+    return (
+      <div style={{ minHeight: "100vh", background: T.bgBase, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ textAlign: "center", padding: 24 }}>
+          <div style={{ fontSize: 36, marginBottom: 12 }}>🔗</div>
+          <p style={{ fontSize: 15, fontWeight: 600, color: T.text1, marginBottom: 6 }}>Link expired or invalid</p>
+          <p style={{ fontSize: 13, color: T.text3 }}>Please contact your CA for a new link.</p>
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  const client = link.clients as any;
+
+  // Fetch tasks
+  const { data: tasks } = await supabase
+    .from("compliance_tasks")
+    .select("*")
+    .eq("client_id", client.id)
+    .order("due_date");
+
+  const active = (tasks ?? []).filter((t: any) => t.status !== "filed");
+  const filed  = (tasks ?? []).filter((t: any) => t.status === "filed");
 
   return (
     <div style={{ minHeight: "100vh", background: T.bgBase }}>
@@ -56,7 +72,7 @@ export default async function PortalPage({ params }: { params: Promise<{ token: 
             {[
               { n: active.length, label: "Pending",     color: active.length > 0 ? T.amber : T.text3 },
               { n: filed.length,  label: "Filed",       color: T.green },
-              { n: client.compliance_types.length, label: "Compliances", color: T.brand },
+              { n: (client.compliance_types ?? []).length, label: "Compliances", color: T.brand },
             ].map(({ n, label, color }) => (
               <div key={label} style={{ flex: 1, background: T.bgSubtle, borderRadius: 8, border: `1px solid ${T.border}`, padding: "8px 12px", textAlign: "center" }}>
                 <div style={{ fontSize: 20, fontWeight: 800, color }}>{n}</div>
@@ -69,14 +85,12 @@ export default async function PortalPage({ params }: { params: Promise<{ token: 
 
       <div style={{ maxWidth: 520, margin: "0 auto", padding: "18px 16px" }}>
 
-        {/* Active */}
+        {/* Active tasks */}
         {active.length > 0 && (
           <div style={{ marginBottom: 22 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: T.text3, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>
-              Action Required
-            </div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: T.text3, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>Action Required</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {active.map(task => {
+              {active.map((task: any) => {
                 const d = Math.ceil((new Date(task.due_date).getTime() - Date.now()) / 86400000);
                 const overdue = d < 0;
                 const urgent  = d <= 3 && !overdue;
@@ -101,11 +115,10 @@ export default async function PortalPage({ params }: { params: Promise<{ token: 
                         </div>
                       </div>
 
-                      {/* Checklist */}
                       <div style={{ background: accentBg, borderRadius: 8, padding: "10px 12px", marginBottom: 12 }}>
                         <div style={{ fontSize: 10, fontWeight: 700, color: accent, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>Documents Required</div>
                         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                          {docs.map(doc => (
+                          {docs.map((doc: string) => (
                             <div key={doc} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                               <div style={{ width: 14, height: 14, borderRadius: 3, border: `1.5px solid ${accent}`, flexShrink: 0 }} />
                               <span style={{ fontSize: 12, color: T.text2 }}>{doc}</span>
@@ -114,7 +127,6 @@ export default async function PortalPage({ params }: { params: Promise<{ token: 
                         </div>
                       </div>
 
-                      {/* Status */}
                       <div style={{ fontSize: 12, color: accent, marginBottom: 12 }}>
                         {task.status === "waiting_docs" ? "📋 Please upload documents now"
                           : task.status === "docs_received" ? "⚙️ Documents received — CA is processing"
@@ -122,7 +134,6 @@ export default async function PortalPage({ params }: { params: Promise<{ token: 
                           : "⏳ Awaiting your documents"}
                       </div>
 
-                      {/* Upload */}
                       {(task.status === "pending" || task.status === "waiting_docs") && (
                         <div style={{ display: "flex", gap: 8 }}>
                           <button style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "11px", background: accent, color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
@@ -146,7 +157,7 @@ export default async function PortalPage({ params }: { params: Promise<{ token: 
           <div style={{ marginBottom: 22 }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: T.text3, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>Completed</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {filed.map(task => (
+              {filed.map((task: any) => (
                 <div key={task.id} style={{ background: T.bgSurface, borderRadius: 10, border: `1px solid ${T.border}`, padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", boxShadow: T.shadow }}>
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 500, color: T.text2 }}>{formatComplianceType(task.compliance_type)}</div>

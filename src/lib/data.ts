@@ -1,15 +1,11 @@
 /**
- * Data access layer — returns mock data if Supabase is not configured,
- * real Supabase data when env vars are set.
+ * Data access layer
+ * Uses real Supabase when env vars are set, mock data otherwise (demo mode)
  */
-import {
-  MOCK_CLIENTS,
-  MOCK_TASKS,
-  MOCK_AUDIT_LOGS,
-} from "./mock-data";
+import { MOCK_CLIENTS, MOCK_TASKS, MOCK_AUDIT_LOGS } from "./mock-data";
 import type { Client, ComplianceTask, AuditLog } from "@/types";
 
-const IS_MOCK =
+export const IS_MOCK =
   !process.env.NEXT_PUBLIC_SUPABASE_URL ||
   process.env.NEXT_PUBLIC_SUPABASE_URL === "your_supabase_project_url";
 
@@ -23,7 +19,7 @@ export async function getClients(): Promise<Client[]> {
     .select("*")
     .eq("status", "active")
     .order("name");
-  return data ?? [];
+  return (data ?? []) as Client[];
 }
 
 export async function getClient(id: string): Promise<Client | null> {
@@ -31,7 +27,7 @@ export async function getClient(id: string): Promise<Client | null> {
   const { createClient } = await import("./supabase/server");
   const supabase = await createClient();
   const { data } = await supabase.from("clients").select("*").eq("id", id).single();
-  return data;
+  return data as Client | null;
 }
 
 // ── Tasks ─────────────────────────────────────────────────────
@@ -41,9 +37,9 @@ export async function getAllTasks(): Promise<ComplianceTask[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("compliance_tasks")
-    .select("*, clients(name, pan)")
+    .select("*")
     .order("due_date");
-  return data ?? [];
+  return (data ?? []) as ComplianceTask[];
 }
 
 export async function getTasksForClient(clientId: string): Promise<ComplianceTask[]> {
@@ -55,15 +51,14 @@ export async function getTasksForClient(clientId: string): Promise<ComplianceTas
     .select("*")
     .eq("client_id", clientId)
     .order("due_date");
-  return data ?? [];
+  return (data ?? []) as ComplianceTask[];
 }
 
 // ── Audit Logs ────────────────────────────────────────────────
 export async function getAuditLogsForClient(clientId: string): Promise<AuditLog[]> {
   if (IS_MOCK)
-    return MOCK_AUDIT_LOGS.filter((l) => l.client_id === clientId).sort(
-      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    );
+    return MOCK_AUDIT_LOGS.filter((l) => l.client_id === clientId)
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   const { createClient } = await import("./supabase/server");
   const supabase = await createClient();
   const { data } = await supabase
@@ -72,14 +67,13 @@ export async function getAuditLogsForClient(clientId: string): Promise<AuditLog[
     .eq("client_id", clientId)
     .order("timestamp", { ascending: false })
     .limit(50);
-  return data ?? [];
+  return (data ?? []) as AuditLog[];
 }
 
 export async function getAllAuditLogsForClient(clientId: string): Promise<AuditLog[]> {
   if (IS_MOCK)
-    return MOCK_AUDIT_LOGS.filter((l) => l.client_id === clientId).sort(
-      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-    );
+    return MOCK_AUDIT_LOGS.filter((l) => l.client_id === clientId)
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
   const { createClient } = await import("./supabase/server");
   const supabase = await createClient();
   const { data } = await supabase
@@ -87,7 +81,5 @@ export async function getAllAuditLogsForClient(clientId: string): Promise<AuditL
     .select("*")
     .eq("client_id", clientId)
     .order("timestamp", { ascending: true });
-  return data ?? [];
+  return (data ?? []) as AuditLog[];
 }
-
-export { IS_MOCK };
