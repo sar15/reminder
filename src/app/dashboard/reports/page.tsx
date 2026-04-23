@@ -1,22 +1,16 @@
-import { createClient } from "@/lib/supabase/server";
+import { getClients } from "@/lib/data";
 import Link from "next/link";
 import { FileText } from "lucide-react";
 
 export default async function ReportsPage() {
-  const supabase = await createClient();
-
-  const { data: clients } = await supabase
-    .from("clients")
-    .select("id, name, pan")
-    .eq("status", "active")
-    .order("name");
+  const clients = await getClients();
 
   return (
     <div className="p-6 space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Liability Reports</h1>
         <p className="text-gray-500 text-sm mt-1">
-          Generate court-admissible proof of every reminder sent to your clients.
+          Court-admissible proof of every reminder sent to your clients.
         </p>
       </div>
 
@@ -27,11 +21,8 @@ export default async function ReportsPage() {
       </div>
 
       <div className="grid gap-3">
-        {clients?.map((client) => (
-          <div
-            key={client.id}
-            className="bg-white rounded-xl border border-gray-200 p-4 flex items-center justify-between"
-          >
+        {clients.map((client) => (
+          <div key={client.id} className="bg-white rounded-xl border border-gray-200 p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <FileText size={18} className="text-indigo-600" />
               <div>
@@ -47,12 +38,6 @@ export default async function ReportsPage() {
             </Link>
           </div>
         ))}
-
-        {(!clients || clients.length === 0) && (
-          <p className="text-center text-gray-400 py-8">
-            No clients yet. <Link href="/dashboard/clients/new" className="text-indigo-600 hover:underline">Add one →</Link>
-          </p>
-        )}
       </div>
     </div>
   );

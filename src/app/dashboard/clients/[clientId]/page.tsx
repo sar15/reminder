@@ -1,8 +1,8 @@
-import { createClient } from "@/lib/supabase/server";
+import { getClient, getTasksForClient, getAuditLogsForClient } from "@/lib/data";
 import { formatComplianceType, daysUntilDue, getRiskLevel } from "@/lib/utils";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Send, FileText, Plus } from "lucide-react";
+import { ArrowLeft, Send, FileText } from "lucide-react";
 import AddTaskForm from "./AddTaskForm";
 
 export default async function ClientDetailPage({
@@ -11,32 +11,17 @@ export default async function ClientDetailPage({
   params: Promise<{ clientId: string }>;
 }) {
   const { clientId } = await params;
-  const supabase = await createClient();
 
-  const { data: client } = await supabase
-    .from("clients")
-    .select("*")
-    .eq("id", clientId)
-    .single();
+  const [client, tasks, logs] = await Promise.all([
+    getClient(clientId),
+    getTasksForClient(clientId),
+    getAuditLogsForClient(clientId),
+  ]);
 
   if (!client) notFound();
 
-  const { data: tasks } = await supabase
-    .from("compliance_tasks")
-    .select("*")
-    .eq("client_id", clientId)
-    .order("due_date");
-
-  const { data: auditLogs } = await supabase
-    .from("audit_log")
-    .select("*")
-    .eq("client_id", clientId)
-    .order("timestamp", { ascending: false })
-    .limit(20);
-
-  const taskList = tasks ?? [];
-  const logs = auditLogs ?? [];
-  const riskLevel = getRiskLevel(taskList.filter((t) => t.status !== "filed"));
+  const activeTasks = tasks.filter((t) => t.status !== "filed");
+  const riskLevel = getRiskLevel(activeTasks);
 
   const riskColors = {
     red: "bg-red-100 text-red-700 border-red-200",
@@ -94,10 +79,7 @@ export default async function ClientDetailPage({
       <div className="grid grid-cols-3 gap-6">
         {/* Tasks */}
         <div className="col-span-2 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-gray-900">Compliance Tasks</h2>
-          </div>
-
+          <h2 className="font-semibold text-gray-900">Compliance Tasks</h2>
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-200">
@@ -109,7 +91,7 @@ export default async function ClientDetailPage({
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {taskList.map((task) => {
+                {tasks.map((task) => {
                   const days = daysUntilDue(task.due_date);
                   return (
                     <tr key={task.id} className="hover:bg-gray-50">
@@ -133,18 +115,14 @@ export default async function ClientDetailPage({
                     </tr>
                   );
                 })}
-                {taskList.length === 0 && (
+                {tasks.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="px-4 py-6 text-center text-gray-400 text-sm">
-                      No tasks yet.
-                    </td>
+                    <td colSpan={4} className="px-4 py-6 text-center text-gray-400 text-sm">No tasks yet.</td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
-
-          {/* Add task form */}
           <AddTaskForm clientId={clientId} complianceTypes={client.compliance_types as string[]} />
         </div>
 

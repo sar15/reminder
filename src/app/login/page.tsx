@@ -1,88 +1,79 @@
 "use client";
 
-import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+
+const IS_MOCK =
+  !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+  process.env.NEXT_PUBLIC_SUPABASE_URL === "your_supabase_project_url";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [sent, setSent] = useState(false);
-  const [error, setError] = useState("");
   const router = useRouter();
-  const supabase = createClient();
 
-  async function handleMagicLink(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
-    });
-
-    if (error) {
-      setError(error.message);
-    } else {
-      setSent(true);
-    }
-    setLoading(false);
-  }
-
-  if (sent) {
+  // Demo mode — just go straight to dashboard
+  if (IS_MOCK) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="bg-white p-8 rounded-xl shadow-sm max-w-md w-full text-center space-y-4">
-          <div className="text-4xl">📧</div>
-          <h2 className="text-xl font-semibold text-gray-900">Check your email</h2>
-          <p className="text-gray-600">
-            We sent a magic link to <strong>{email}</strong>. Click it to sign in.
+        <div className="bg-white p-8 rounded-xl shadow-sm max-w-md w-full space-y-6 text-center">
+          <div className="text-4xl">🛡️</div>
+          <h1 className="text-2xl font-bold text-gray-900">CA Compliance Shield</h1>
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800 text-left">
+            <strong>Demo Mode</strong> — running with sample data.
+            <br />
+            No Supabase setup needed to explore the UI.
+          </div>
+          <button
+            onClick={() => router.push("/dashboard")}
+            className="w-full bg-indigo-600 text-white py-3 rounded-lg font-medium hover:bg-indigo-700 transition"
+          >
+            Enter Dashboard →
+          </button>
+          <p className="text-xs text-gray-400">
+            To use real data, add your Supabase keys to{" "}
+            <code className="bg-gray-100 px-1 rounded">.env.local</code>
           </p>
         </div>
       </div>
     );
   }
 
+  return <RealLoginPage />;
+}
+
+function RealLoginPage() {
+  const router = useRouter();
+
+  async function handleMagicLink(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const email = (e.currentTarget.elements.namedItem("email") as HTMLInputElement).value;
+    const { createClient } = await import("@/lib/supabase/client");
+    const supabase = createClient();
+    await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+    });
+    alert(`Magic link sent to ${email}`);
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="bg-white p-8 rounded-xl shadow-sm max-w-md w-full space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">CA Compliance Shield</h1>
-          <p className="text-gray-500 mt-1 text-sm">Sign in to your firm dashboard</p>
-        </div>
-
+        <h1 className="text-2xl font-bold text-gray-900">CA Compliance Shield</h1>
         <form onSubmit={handleMagicLink} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email address
-            </label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="partner@yourfirm.com"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
-
-          {error && (
-            <p className="text-red-600 text-sm">{error}</p>
-          )}
-
+          <input
+            name="email"
+            type="email"
+            required
+            placeholder="partner@yourfirm.com"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+          />
           <button
             type="submit"
-            disabled={loading}
-            className="w-full bg-indigo-600 text-white py-2 rounded-lg font-medium hover:bg-indigo-700 transition disabled:opacity-50"
+            className="w-full bg-indigo-600 text-white py-2 rounded-lg font-medium hover:bg-indigo-700 transition"
           >
-            {loading ? "Sending..." : "Send Magic Link"}
+            Send Magic Link
           </button>
         </form>
-
-        <p className="text-xs text-gray-400 text-center">
-          No password needed. We&apos;ll email you a secure sign-in link.
-        </p>
       </div>
     </div>
   );
