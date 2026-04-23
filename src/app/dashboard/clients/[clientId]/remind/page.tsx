@@ -1,21 +1,21 @@
 "use client";
-
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { formatComplianceType } from "@/lib/utils";
 import { MOCK_CLIENTS, MOCK_TASKS } from "@/lib/mock-data";
 import Link from "next/link";
+import { ArrowLeft, Send, Shield, CheckCircle2 } from "lucide-react";
 
 const CADENCES = [
-  { key: "T-15", label: "T-15", desc: "First gentle nudge",    tone: "Friendly",  color: "#6b7280" },
-  { key: "T-10", label: "T-10", desc: "Document checklist",    tone: "Informative",color: "#2563eb" },
-  { key: "T-7",  label: "T-7",  desc: "Formal reminder",       tone: "Firm",       color: "#4f46e5" },
-  { key: "T-3",  label: "T-3",  desc: "Urgent warning",        tone: "Urgent",     color: "#d97706" },
-  { key: "T-1",  label: "T-1",  desc: "Final notice",          tone: "Critical",   color: "#dc2626" },
-  { key: "T+1",  label: "T+1",  desc: "Overdue notice",        tone: "Overdue",    color: "#7f1d1d" },
+  { key: "T-15", label: "T-15", desc: "First gentle nudge",  color: "#57534E", bg: "#F5F5F4", border: "#E8E6E3" },
+  { key: "T-10", label: "T-10", desc: "Document checklist",  color: "#1E40AF", bg: "#EFF6FF", border: "#BFDBFE" },
+  { key: "T-7",  label: "T-7",  desc: "Formal reminder",     color: "#5B21B6", bg: "#EDE9FE", border: "#DDD6FE" },
+  { key: "T-3",  label: "T-3",  desc: "Urgent warning",      color: "#92400E", bg: "#FFFBEB", border: "#FDE68A" },
+  { key: "T-1",  label: "T-1",  desc: "Final notice",        color: "#991B1B", bg: "#FEF2F2", border: "#FECACA" },
+  { key: "T+1",  label: "T+1",  desc: "Overdue notice",      color: "#7F1D1D", bg: "#FFF1F2", border: "#FECDD3" },
 ];
 
-const PREVIEW_BODY: Record<string, string> = {
+const PREVIEW: Record<string, string> = {
   "T-15": "This is a friendly reminder that your compliance filing is due in 15 days. Please start gathering the required documents at your earliest convenience.",
   "T-10": "Your compliance filing is due in 10 days. Please upload the required documents: Bank Statement, Sales Register, Purchase Register, and Expense Invoices.",
   "T-7":  "Your filing deadline is in 7 days. We have not yet received your documents. Please upload them immediately to avoid any delays.",
@@ -25,10 +25,8 @@ const PREVIEW_BODY: Record<string, string> = {
 };
 
 export default function RemindPage() {
-  const params = useParams();
-  const clientId = params.clientId as string;
+  const { clientId } = useParams() as { clientId: string };
   const router = useRouter();
-
   const [client, setClient] = useState<any>(null);
   const [tasks, setTasks] = useState<any[]>([]);
   const [selectedTask, setSelectedTask] = useState("");
@@ -39,274 +37,196 @@ export default function RemindPage() {
   const [sent, setSent] = useState(false);
 
   useEffect(() => {
-    const c = MOCK_CLIENTS.find((x) => x.id === clientId);
-    const t = MOCK_TASKS.filter((x) => x.client_id === clientId && x.status !== "filed");
-    setClient(c ?? null);
-    setTasks(t);
+    const c = MOCK_CLIENTS.find(x => x.id === clientId);
+    const t = MOCK_TASKS.filter(x => x.client_id === clientId && x.status !== "filed");
+    setClient(c ?? null); setTasks(t);
     if (t.length > 0) setSelectedTask(t[0].id);
   }, [clientId]);
 
-  const selectedTaskData = tasks.find((t) => t.id === selectedTask);
-  const selectedCadence = CADENCES.find((c) => c.key === cadence)!;
+  const taskData = tasks.find(t => t.id === selectedTask);
+  const cad = CADENCES.find(c => c.key === cadence)!;
 
-  async function handleSend() {
+  async function send() {
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 1400));
-    setSent(true);
-    setLoading(false);
+    await new Promise(r => setTimeout(r, 1400));
+    setSent(true); setLoading(false);
   }
 
-  if (!client) return (
-    <div style={{ padding: 28, display: "flex", alignItems: "center", justifyContent: "center", height: 200 }}>
-      <div style={{ fontSize: 13, color: "#9ca3af" }}>Loading...</div>
-    </div>
-  );
+  if (!client) return <div className="p-7 text-[13px] text-[#A8A29E]">Loading…</div>;
 
   if (sent) return (
-    <div style={{ padding: 28, maxWidth: 520, margin: "60px auto", textAlign: "center" }}>
-      <div style={{
-        width: 64, height: 64, borderRadius: "50%",
-        background: "#d1fae5", display: "flex", alignItems: "center", justifyContent: "center",
-        margin: "0 auto 20px", fontSize: 28,
-      }}>✅</div>
-      <h2 style={{ fontSize: 20, fontWeight: 700, color: "#111827", marginBottom: 8 }}>Reminder Sent</h2>
-      <p style={{ fontSize: 13, color: "#6b7280", marginBottom: 24 }}>
-        Personalized {cadence} reminder sent to <strong>{client.email}</strong>
+    <div className="p-7 max-w-[480px] mx-auto mt-16 text-center">
+      <div className="w-14 h-14 rounded-full bg-[#ECFDF5] flex items-center justify-center mx-auto mb-5">
+        <CheckCircle2 size={28} className="text-[#059669]" />
+      </div>
+      <h2 className="text-[18px] font-semibold text-[#1C1917] mb-2">Reminder Sent</h2>
+      <p className="text-[13px] text-[#57534E] mb-6">
+        {cadence} reminder sent to <strong>{client.email}</strong>
       </p>
-      <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 10, padding: 16, textAlign: "left", marginBottom: 24 }}>
-        {[
-          "✅ Logged in immutable audit trail with IST timestamp",
-          "✅ Message ID recorded for delivery proof",
-          "✅ Task status updated to Waiting Docs",
-          "✅ Liability Report updated automatically",
-        ].map((item) => (
-          <div key={item} style={{ fontSize: 12, color: "#374151", marginBottom: 8 }}>{item}</div>
+      <div className="bg-[#FAFAF9] rounded-xl border border-[#E8E6E3] p-4 text-left space-y-2.5 mb-6">
+        {["Logged in immutable audit trail with IST timestamp", "Message ID recorded for delivery proof", "Task status updated to Waiting Docs", "Liability Report updated automatically"].map(item => (
+          <div key={item} className="flex items-center gap-2.5 text-[12px] text-[#57534E]">
+            <span className="text-[#059669]">✓</span> {item}
+          </div>
         ))}
       </div>
-      <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
-        <button onClick={() => setSent(false)} style={{
-          border: "1px solid #e5e7eb", background: "#fff",
-          borderRadius: 8, padding: "9px 18px", fontSize: 13, cursor: "pointer", color: "#374151",
-        }}>
-          Send Another
-        </button>
-        <Link href={`/dashboard/clients/${clientId}`} style={{
-          background: "#4f46e5", color: "#fff",
-          borderRadius: 8, padding: "9px 18px", fontSize: 13, fontWeight: 600, textDecoration: "none",
-        }}>
-          Back to Client
-        </Link>
+      <div className="flex gap-2 justify-center">
+        <button onClick={() => setSent(false)} className="px-4 py-2 rounded-lg border border-[#E8E6E3] text-[#57534E] text-[13px] hover:bg-[#F5F5F4] transition-colors">Send Another</button>
+        <Link href={`/dashboard/clients/${clientId}`} className="px-4 py-2 rounded-lg bg-[#6D28D9] text-white text-[13px] font-medium hover:bg-[#5B21B6] transition-colors">Back to Client</Link>
       </div>
     </div>
   );
 
   return (
-    <div style={{ padding: 28, maxWidth: 1000 }}>
-
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-        <Link href={`/dashboard/clients/${clientId}`} style={{
-          width: 32, height: 32, borderRadius: 8,
-          background: "#fff", border: "1px solid #e5e7eb",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          textDecoration: "none", fontSize: 16, color: "#374151",
-        }}>←</Link>
+    <div className="p-7 max-w-[960px]">
+      <div className="flex items-center gap-3 mb-7">
+        <Link href={`/dashboard/clients/${clientId}`} className="w-8 h-8 rounded-lg bg-white border border-[#E8E6E3] flex items-center justify-center text-[#57534E] hover:bg-[#F5F5F4] transition-colors">
+          <ArrowLeft size={14} />
+        </Link>
         <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: "#111827" }}>Send Reminder</h1>
-          <p style={{ fontSize: 13, color: "#6b7280", marginTop: 2 }}>{client.name}</p>
+          <h1 className="text-[20px] font-semibold text-[#1C1917] tracking-tight">Send Reminder</h1>
+          <p className="text-[13px] text-[#A8A29E] mt-0.5">{client.name}</p>
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 360px", gap: 20 }}>
+      <div className="grid grid-cols-[1fr_340px] gap-6">
+        {/* Config */}
+        <div className="space-y-4">
 
-        {/* Left — config */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-
-          {/* Task selector */}
-          <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 20 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: "#111827", marginBottom: 14 }}>
-              1. Select Compliance Task
-            </div>
-            {tasks.length === 0 ? (
-              <p style={{ fontSize: 13, color: "#9ca3af" }}>No pending tasks for this client.</p>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {tasks.map((task) => {
-                  const days = Math.ceil((new Date(task.due_date).getTime() - Date.now()) / 86400000);
-                  const isSelected = selectedTask === task.id;
-                  return (
-                    <label key={task.id} style={{
-                      display: "flex", alignItems: "center", gap: 12,
-                      padding: "12px 14px", borderRadius: 8, cursor: "pointer",
-                      border: `1px solid ${isSelected ? "#a5b4fc" : "#e5e7eb"}`,
-                      background: isSelected ? "#f5f3ff" : "#fafafa",
-                    }}>
-                      <input
-                        type="radio" name="task" value={task.id}
-                        checked={isSelected}
-                        onChange={() => setSelectedTask(task.id)}
-                        style={{ accentColor: "#4f46e5" }}
-                      />
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: "#111827" }}>
-                          {formatComplianceType(task.compliance_type)}
+          {/* Step 1 — Task */}
+          <div className="bg-white rounded-xl border border-[#E8E6E3] p-5 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+            <p className="text-[11px] font-semibold text-[#A8A29E] uppercase tracking-wider mb-4">1 · Select Task</p>
+            {tasks.length === 0
+              ? <p className="text-[13px] text-[#A8A29E]">No pending tasks.</p>
+              : <div className="space-y-2">
+                  {tasks.map(t => {
+                    const d = Math.ceil((new Date(t.due_date).getTime() - Date.now()) / 86400000);
+                    const sel = selectedTask === t.id;
+                    return (
+                      <label key={t.id} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${sel ? "border-[#DDD6FE] bg-[#FAFAF9]" : "border-[#E8E6E3] hover:border-[#D6D3CF]"}`}>
+                        <input type="radio" name="task" value={t.id} checked={sel} onChange={() => setSelectedTask(t.id)} className="accent-[#6D28D9]" />
+                        <div className="flex-1">
+                          <p className="text-[13px] font-semibold text-[#1C1917]">{formatComplianceType(t.compliance_type)}</p>
+                          <p className="text-[11px] text-[#A8A29E]">{t.period}</p>
                         </div>
-                        <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 1 }}>{task.period}</div>
-                      </div>
-                      <div style={{ textAlign: "right" }}>
-                        <div style={{ fontSize: 12, color: "#374151" }}>{task.due_date}</div>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: days < 0 ? "#dc2626" : days <= 5 ? "#d97706" : "#9ca3af" }}>
-                          {days < 0 ? `${Math.abs(days)}d overdue` : `${days}d left`}
+                        <div className="text-right">
+                          <p className="text-[12px] text-[#57534E]">{t.due_date}</p>
+                          <p className="text-[11px] font-semibold" style={{ color: d < 0 ? "#DC2626" : d <= 5 ? "#D97706" : "#A8A29E" }}>
+                            {d < 0 ? `${Math.abs(d)}d overdue` : `${d}d left`}
+                          </p>
                         </div>
-                      </div>
-                    </label>
-                  );
-                })}
-              </div>
-            )}
+                      </label>
+                    );
+                  })}
+                </div>
+            }
           </div>
 
-          {/* Cadence */}
-          <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 20 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: "#111827", marginBottom: 14 }}>
-              2. Choose Reminder Cadence
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
-              {CADENCES.map((c) => {
-                const isSelected = cadence === c.key;
+          {/* Step 2 — Cadence */}
+          <div className="bg-white rounded-xl border border-[#E8E6E3] p-5 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+            <p className="text-[11px] font-semibold text-[#A8A29E] uppercase tracking-wider mb-4">2 · Reminder Cadence</p>
+            <div className="grid grid-cols-3 gap-2">
+              {CADENCES.map(c => {
+                const sel = cadence === c.key;
                 return (
-                  <button key={c.key} type="button" onClick={() => setCadence(c.key)} style={{
-                    padding: "10px 12px", borderRadius: 8, cursor: "pointer", textAlign: "left",
-                    border: `1px solid ${isSelected ? c.color : "#e5e7eb"}`,
-                    background: isSelected ? c.color : "#fff",
-                    color: isSelected ? "#fff" : "#374151",
-                  }}>
-                    <div style={{ fontSize: 13, fontWeight: 700 }}>{c.label}</div>
-                    <div style={{ fontSize: 10, marginTop: 2, opacity: isSelected ? 0.85 : 0.6 }}>{c.desc}</div>
+                  <button key={c.key} type="button" onClick={() => setCadence(c.key)}
+                    className="p-3 rounded-lg border text-left transition-all"
+                    style={{ borderColor: sel ? c.border : "#E8E6E3", background: sel ? c.bg : "#FAFAF9" }}
+                  >
+                    <p className="text-[13px] font-bold" style={{ color: sel ? c.color : "#1C1917" }}>{c.label}</p>
+                    <p className="text-[10px] mt-0.5" style={{ color: sel ? c.color : "#A8A29E" }}>{c.desc}</p>
                   </button>
                 );
               })}
             </div>
-            <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 10 }}>
-              T-3 = 3 days before due · T-1 = Final warning · T+1 = Overdue notice
-            </div>
           </div>
 
-          {/* Channels */}
-          <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 20 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: "#111827", marginBottom: 14 }}>
-              3. Send Via
-            </div>
-            <div style={{ display: "flex", gap: 10 }}>
+          {/* Step 3 — Channels */}
+          <div className="bg-white rounded-xl border border-[#E8E6E3] p-5 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+            <p className="text-[11px] font-semibold text-[#A8A29E] uppercase tracking-wider mb-4">3 · Send Via</p>
+            <div className="flex gap-3 mb-4">
               {[
                 { key: "email", icon: "📧", label: "Email", sub: client.email ?? "No email", active: email, toggle: () => setEmail(!email) },
-                { key: "whatsapp", icon: "💬", label: "WhatsApp", sub: client.phone ?? "No phone", active: whatsapp, toggle: () => setWhatsapp(!whatsapp), disabled: !client.phone },
-              ].map((ch) => (
-                <button key={ch.key} type="button" onClick={ch.toggle} disabled={ch.disabled} style={{
-                  flex: 1, padding: "12px 14px", borderRadius: 8, cursor: ch.disabled ? "not-allowed" : "pointer",
-                  border: `1px solid ${ch.active ? "#a5b4fc" : "#e5e7eb"}`,
-                  background: ch.active ? "#f5f3ff" : "#fafafa",
-                  textAlign: "left", opacity: ch.disabled ? 0.4 : 1,
-                }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                    <span style={{ fontSize: 16 }}>{ch.icon}</span>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: "#111827" }}>{ch.label}</span>
-                    {ch.active && <span style={{ marginLeft: "auto", fontSize: 11, color: "#4f46e5", fontWeight: 700 }}>✓</span>}
+                { key: "wa",    icon: "💬", label: "WhatsApp", sub: client.phone ?? "No phone", active: whatsapp, toggle: () => setWhatsapp(!whatsapp), disabled: !client.phone },
+              ].map(ch => (
+                <button key={ch.key} type="button" onClick={ch.toggle} disabled={ch.disabled}
+                  className={`flex-1 p-3 rounded-lg border text-left transition-all ${ch.disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer"} ${ch.active ? "border-[#DDD6FE] bg-[#FAFAF9]" : "border-[#E8E6E3] hover:border-[#D6D3CF]"}`}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[15px]">{ch.icon}</span>
+                    <span className="text-[12px] font-semibold text-[#1C1917]">{ch.label}</span>
+                    {ch.active && <span className="ml-auto text-[#6D28D9] text-[11px] font-bold">✓</span>}
                   </div>
-                  <div style={{ fontSize: 11, color: "#9ca3af" }}>{ch.sub}</div>
+                  <p className="text-[10px] text-[#A8A29E] truncate">{ch.sub}</p>
                 </button>
               ))}
             </div>
-            <div style={{ marginTop: 12, padding: "10px 12px", background: "#f0fdf4", borderRadius: 8, border: "1px solid #bbf7d0" }}>
-              <div style={{ fontSize: 11, color: "#166534" }}>
-                🔒 <strong>1-to-1 only</strong> — This message is sent exclusively to {client.contact_name ?? client.name}. No CC, no BCC, no privacy breach.
-              </div>
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-[#ECFDF5] border border-[#A7F3D0]">
+              <Shield size={12} className="text-[#059669] mt-0.5 flex-shrink-0" />
+              <p className="text-[11px] text-[#065F46] leading-relaxed">
+                <strong>1-to-1 only.</strong> Sent exclusively to {client.contact_name ?? client.name}. No CC, no BCC, no privacy breach.
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Right — preview + send */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-
-          {/* Preview */}
-          <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>
-            <div style={{ background: "#1e293b", padding: "12px 16px" }}>
-              <div style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                Message Preview
-              </div>
+        {/* Preview + send */}
+        <div className="space-y-4">
+          <div className="bg-white rounded-xl border border-[#E8E6E3] overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+            <div className="px-4 py-3 bg-[#1C1917]">
+              <p className="text-[10px] font-semibold text-[#A8A29E] uppercase tracking-wider">Preview</p>
             </div>
-            <div style={{ padding: 16 }}>
-              <div style={{ marginBottom: 12 }}>
-                <div style={{ fontSize: 10, color: "#9ca3af", fontWeight: 600, textTransform: "uppercase", marginBottom: 3 }}>TO</div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: "#111827" }}>{client.contact_name ?? client.name}</div>
-                <div style={{ fontSize: 11, color: "#9ca3af" }}>{client.email}</div>
+            <div className="p-4 space-y-3">
+              <div>
+                <p className="text-[10px] font-semibold text-[#A8A29E] uppercase tracking-wider mb-1">To</p>
+                <p className="text-[12px] font-semibold text-[#1C1917]">{client.contact_name ?? client.name}</p>
+                <p className="text-[11px] text-[#A8A29E]">{client.email}</p>
               </div>
-              <div style={{ borderTop: "1px solid #f3f4f6", paddingTop: 12, marginBottom: 12 }}>
-                <div style={{ fontSize: 10, color: "#9ca3af", fontWeight: 600, textTransform: "uppercase", marginBottom: 3 }}>SUBJECT</div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: "#111827" }}>
+              <div className="border-t border-[#F0EFED] pt-3">
+                <p className="text-[10px] font-semibold text-[#A8A29E] uppercase tracking-wider mb-1">Subject</p>
+                <p className="text-[12px] font-semibold text-[#1C1917]">
                   {cadence === "T+1" ? "⚠️ Overdue: " : cadence === "T-1" ? "🚨 Final Notice: " : "Action Required: "}
-                  {selectedTaskData ? formatComplianceType(selectedTaskData.compliance_type) : "Compliance Reminder"}
-                </div>
+                  {taskData ? formatComplianceType(taskData.compliance_type) : "Compliance Reminder"}
+                </p>
               </div>
-              <div style={{ borderTop: "1px solid #f3f4f6", paddingTop: 12 }}>
-                <div style={{ fontSize: 10, color: "#9ca3af", fontWeight: 600, textTransform: "uppercase", marginBottom: 8 }}>BODY</div>
-                <div style={{ background: "#f9fafb", borderRadius: 8, padding: 12, fontSize: 11, color: "#374151", lineHeight: 1.6 }}>
-                  <p style={{ marginBottom: 8 }}>Dear {client.contact_name ?? client.name},</p>
-                  <p style={{ marginBottom: 8 }}>{PREVIEW_BODY[cadence]}</p>
-                  {selectedTaskData && (
-                    <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 6, padding: "8px 10px", marginBottom: 8 }}>
-                      <div><strong>Compliance:</strong> {formatComplianceType(selectedTaskData.compliance_type)}</div>
-                      <div><strong>Due Date:</strong> {selectedTaskData.due_date}</div>
-                      {client.pan && <div><strong>PAN:</strong> {client.pan}</div>}
+              <div className="border-t border-[#F0EFED] pt-3">
+                <p className="text-[10px] font-semibold text-[#A8A29E] uppercase tracking-wider mb-2">Body</p>
+                <div className="bg-[#FAFAF9] rounded-lg p-3 text-[11px] text-[#57534E] leading-relaxed space-y-2">
+                  <p>Dear {client.contact_name ?? client.name},</p>
+                  <p>{PREVIEW[cadence]}</p>
+                  {taskData && (
+                    <div className="bg-white rounded-lg border border-[#E8E6E3] p-2.5 space-y-1 text-[10px]">
+                      <p><strong>Compliance:</strong> {formatComplianceType(taskData.compliance_type)}</p>
+                      <p><strong>Due Date:</strong> {taskData.due_date}</p>
+                      {client.pan && <p><strong>PAN:</strong> {client.pan}</p>}
                     </div>
                   )}
-                  <p style={{ color: "#9ca3af", fontSize: 10 }}>
-                    This is a confidential, personalized message sent only to you.
-                  </p>
+                  <p className="text-[#A8A29E] text-[10px]">Confidential — sent only to you.</p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Audit note */}
-          <div style={{ background: "#f5f3ff", border: "1px solid #e0e7ff", borderRadius: 10, padding: 14 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#4338ca", marginBottom: 6 }}>🛡️ Audit Trail Protection</div>
-            <div style={{ fontSize: 11, color: "#4f46e5", lineHeight: 1.5 }}>
-              This send will be logged with timestamp, message ID, and delivery status in your immutable audit trail — usable as legal proof in ICAI proceedings.
+          <div className="bg-[#EDE9FE] rounded-xl border border-[#DDD6FE] p-3.5">
+            <div className="flex items-center gap-2 mb-1.5">
+              <Shield size={12} className="text-[#6D28D9]" />
+              <p className="text-[11px] font-semibold text-[#5B21B6]">Audit Trail Protection</p>
             </div>
+            <p className="text-[11px] text-[#6D28D9] leading-relaxed">
+              This send is logged with timestamp, message ID, and delivery status — usable as legal proof in ICAI proceedings.
+            </p>
           </div>
 
-          {/* Send button */}
-          <button
-            onClick={handleSend}
-            disabled={loading || !selectedTask || (!email && !whatsapp)}
-            style={{
-              background: loading ? "#a5b4fc" : "#4f46e5",
-              color: "#fff", border: "none",
-              borderRadius: 10, padding: "14px",
-              fontSize: 14, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-            }}
+          <button onClick={send} disabled={loading || !selectedTask || (!email && !whatsapp)}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[#6D28D9] text-white text-[14px] font-semibold hover:bg-[#5B21B6] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-[0_2px_8px_rgba(109,40,217,0.3)]"
           >
-            {loading ? (
-              <>
-                <span style={{ display: "inline-block", width: 16, height: 16, border: "2px solid #fff", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
-                Sending...
-              </>
-            ) : (
-              `Send ${cadence} Reminder →`
-            )}
+            {loading
+              ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Sending…</>
+              : <><Send size={14} /> Send {cadence} Reminder</>
+            }
           </button>
-
-          {!client.email && !client.phone && (
-            <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "10px 14px", fontSize: 12, color: "#991b1b" }}>
-              ⚠️ No email or phone on file. Add contact details to send reminders.
-            </div>
-          )}
         </div>
       </div>
-
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

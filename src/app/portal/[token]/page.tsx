@@ -1,165 +1,143 @@
 import { formatComplianceType } from "@/lib/utils";
 import { MOCK_CLIENTS, MOCK_TASKS } from "@/lib/mock-data";
+import { Shield, Upload, Camera } from "lucide-react";
 
 const TOKEN_MAP: Record<string, string> = {
-  "demo-sharma": "1",
-  "demo-mehta":  "2",
-  "demo-patel":  "3",
-  "demo-gupta":  "4",
-  "demo-reddy":  "5",
+  "demo-sharma": "1", "demo-mehta": "2", "demo-patel": "3",
+  "demo-gupta": "4", "demo-reddy": "5",
 };
 
-// Required documents per compliance type
-const REQUIRED_DOCS: Record<string, string[]> = {
-  GSTR1:           ["Sales Register", "Invoice Summary", "E-way Bills (if any)"],
-  GSTR3B:          ["Bank Statement", "Sales Register", "Purchase Register", "Expense Invoices"],
-  TDS_PAYMENT:     ["Salary Sheet", "Vendor Payment Details", "TDS Challan"],
-  TDS_RETURN_26Q:  ["Vendor PAN Details", "Payment Summary", "TDS Certificates"],
-  ITR_NON_AUDIT:   ["Bank Statements (all)", "Investment Proofs", "Form 16", "Rental Income (if any)"],
-  ITR_AUDIT:       ["Audited Balance Sheet", "P&L Statement", "Bank Statements", "Fixed Asset Register"],
-  ADVANCE_TAX:     ["Estimated Income Statement", "Previous Year ITR"],
-  AOC4:            ["Audited Financial Statements", "Board Resolution", "Director Details"],
-  MGT7:            ["Shareholder Register", "Director Details", "Annual Return"],
-  PF:              ["Salary Sheet", "Employee PF Details", "ECR File"],
-  ESI:             ["Salary Sheet", "Employee ESI Details"],
-  DEFAULT:         ["Relevant Documents", "Bank Statement"],
+const DOCS: Record<string, string[]> = {
+  GSTR1:          ["Sales Register", "Invoice Summary", "E-way Bills (if any)"],
+  GSTR3B:         ["Bank Statement", "Sales Register", "Purchase Register", "Expense Invoices"],
+  TDS_PAYMENT:    ["Salary Sheet", "Vendor Payment Details"],
+  TDS_RETURN_26Q: ["Vendor PAN Details", "Payment Summary", "TDS Certificates"],
+  ITR_NON_AUDIT:  ["Bank Statements (all)", "Investment Proofs", "Form 16"],
+  ITR_AUDIT:      ["Audited Balance Sheet", "P&L Statement", "Bank Statements"],
+  ADVANCE_TAX:    ["Estimated Income Statement", "Previous Year ITR"],
+  AOC4:           ["Audited Financial Statements", "Board Resolution"],
+  MGT7:           ["Shareholder Register", "Director Details"],
+  PF:             ["Salary Sheet", "Employee PF Details", "ECR File"],
+  ESI:            ["Salary Sheet", "Employee ESI Details"],
+  DEFAULT:        ["Relevant Documents", "Bank Statement"],
 };
 
-export default async function ClientPortalPage({
-  params,
-}: { params: Promise<{ token: string }> }) {
+export default async function PortalPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   const clientId = TOKEN_MAP[token] ?? "1";
-  const client = MOCK_CLIENTS.find((c) => c.id === clientId);
-  const tasks = MOCK_TASKS.filter((t) => t.client_id === clientId);
-  const activeTasks = tasks.filter((t) => t.status !== "filed");
-  const filedTasks  = tasks.filter((t) => t.status === "filed");
+  const client = MOCK_CLIENTS.find(c => c.id === clientId);
+  const tasks = MOCK_TASKS.filter(t => t.client_id === clientId);
+  const active = tasks.filter(t => t.status !== "filed");
+  const filed  = tasks.filter(t => t.status === "filed");
 
-  if (!client) {
-    return (
-      <div style={{ minHeight: "100vh", background: "#f9fafb", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 32, marginBottom: 12 }}>🔗</div>
-          <p style={{ fontSize: 14, color: "#6b7280" }}>Invalid or expired link.</p>
-          <p style={{ fontSize: 12, color: "#9ca3af", marginTop: 4 }}>Please contact your CA for a new link.</p>
-        </div>
+  if (!client) return (
+    <div className="min-h-screen bg-[#FAFAF9] flex items-center justify-center">
+      <div className="text-center">
+        <p className="text-[14px] text-[#57534E]">Invalid or expired link.</p>
+        <p className="text-[12px] text-[#A8A29E] mt-1">Please contact your CA for a new link.</p>
       </div>
-    );
-  }
+    </div>
+  );
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f9fafb" }}>
+    <div className="min-h-screen bg-[#FAFAF9]">
 
       {/* Header */}
-      <div style={{ background: "#4f46e5", padding: "24px 20px 20px" }}>
-        <div style={{ maxWidth: 520, margin: "0 auto" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-            <span style={{ fontSize: 14 }}>🛡️</span>
-            <span style={{ fontSize: 11, color: "#a5b4fc", fontWeight: 600 }}>DeadlineShield · Secure Client Portal</span>
+      <div className="bg-white border-b border-[#E8E6E3] px-5 pt-6 pb-5">
+        <div className="max-w-[520px] mx-auto">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-6 h-6 rounded-md bg-[#6D28D9] flex items-center justify-center">
+              <Shield size={12} className="text-white" strokeWidth={2.5} />
+            </div>
+            <span className="text-[11px] font-medium text-[#A8A29E]">DeadlineShield · Secure Portal</span>
           </div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: "#fff", marginBottom: 4 }}>{client.name}</h1>
-          <p style={{ fontSize: 13, color: "#c7d2fe" }}>
+          <h1 className="text-[18px] font-semibold text-[#1C1917] tracking-tight">{client.name}</h1>
+          <p className="text-[12px] text-[#A8A29E] mt-0.5">
             {client.contact_name && `${client.contact_name} · `}
             {client.pan && `PAN: ${client.pan}`}
           </p>
 
-          {/* Summary pills */}
-          <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
-            <Pill value={activeTasks.length} label="Pending" color="#fbbf24" />
-            <Pill value={filedTasks.length}  label="Filed"   color="#34d399" />
-            <Pill value={client.compliance_types.length} label="Compliances" color="#a5b4fc" />
+          {/* Stats */}
+          <div className="flex gap-3 mt-4">
+            <Stat n={active.length} label="Pending" color={active.length > 0 ? "#D97706" : "#A8A29E"} />
+            <Stat n={filed.length}  label="Filed"   color="#059669" />
+            <Stat n={client.compliance_types.length} label="Compliances" color="#6D28D9" />
           </div>
         </div>
       </div>
 
-      <div style={{ maxWidth: 520, margin: "0 auto", padding: "20px 16px" }}>
+      <div className="max-w-[520px] mx-auto px-5 py-5 space-y-4">
 
-        {/* Pending tasks */}
-        {activeTasks.length > 0 && (
-          <div style={{ marginBottom: 24 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
-              <span>⚠️</span> Action Required
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {activeTasks.map((task) => {
-                const daysLeft = Math.ceil((new Date(task.due_date).getTime() - Date.now()) / 86400000);
-                const isOverdue = daysLeft < 0;
-                const isUrgent  = daysLeft <= 3 && !isOverdue;
-                const docs = REQUIRED_DOCS[task.compliance_type] ?? REQUIRED_DOCS.DEFAULT;
-                const urgencyColor = isOverdue ? "#dc2626" : isUrgent ? "#d97706" : "#4f46e5";
-                const urgencyBg    = isOverdue ? "#fef2f2" : isUrgent ? "#fffbeb" : "#f5f3ff";
-                const urgencyBorder= isOverdue ? "#fecaca" : isUrgent ? "#fde68a" : "#e0e7ff";
+        {/* Active tasks */}
+        {active.length > 0 && (
+          <div>
+            <p className="text-[10px] font-semibold text-[#A8A29E] uppercase tracking-wider mb-3">
+              Action Required
+            </p>
+            <div className="space-y-3">
+              {active.map(task => {
+                const d = Math.ceil((new Date(task.due_date).getTime() - Date.now()) / 86400000);
+                const overdue = d < 0;
+                const urgent  = d <= 3 && !overdue;
+                const docs = DOCS[task.compliance_type] ?? DOCS.DEFAULT;
+                const accent = overdue ? "#DC2626" : urgent ? "#D97706" : "#6D28D9";
+                const accentBg = overdue ? "#FEF2F2" : urgent ? "#FFFBEB" : "#EDE9FE";
+                const accentBorder = overdue ? "#FECACA" : urgent ? "#FDE68A" : "#DDD6FE";
 
                 return (
-                  <div key={task.id} style={{
-                    background: "#fff", borderRadius: 12,
-                    border: `1px solid ${urgencyBorder}`,
-                    overflow: "hidden",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-                  }}>
-                    {/* Urgency bar */}
-                    <div style={{ height: 3, background: urgencyColor }} />
+                  <div key={task.id} className="bg-white rounded-xl border overflow-hidden shadow-[0_1px_4px_rgba(0,0,0,0.06)]" style={{ borderColor: accentBorder }}>
+                    {/* Top accent line */}
+                    <div className="h-0.5" style={{ background: accent }} />
 
-                    <div style={{ padding: 16 }}>
+                    <div className="p-4">
                       {/* Task header */}
-                      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 12 }}>
+                      <div className="flex items-start justify-between mb-3">
                         <div>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: "#111827" }}>
+                          <p className="text-[14px] font-semibold text-[#1C1917]">
                             {formatComplianceType(task.compliance_type)}
-                          </div>
-                          <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>Period: {task.period}</div>
+                          </p>
+                          <p className="text-[11px] text-[#A8A29E] mt-0.5">Period: {task.period}</p>
                         </div>
-                        <div style={{ textAlign: "right" }}>
-                          <div style={{ fontSize: 11, color: "#9ca3af" }}>Due date</div>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: urgencyColor }}>{task.due_date}</div>
-                          <div style={{ fontSize: 11, fontWeight: 600, color: urgencyColor }}>
-                            {isOverdue ? `${Math.abs(daysLeft)}d overdue` : `${daysLeft}d left`}
-                          </div>
+                        <div className="text-right">
+                          <p className="text-[11px] text-[#A8A29E]">Due</p>
+                          <p className="text-[13px] font-bold" style={{ color: accent }}>{task.due_date}</p>
+                          <p className="text-[11px] font-semibold" style={{ color: accent }}>
+                            {overdue ? `${Math.abs(d)}d overdue` : `${d}d left`}
+                          </p>
                         </div>
                       </div>
 
                       {/* Document checklist */}
-                      <div style={{ background: urgencyBg, borderRadius: 8, padding: "10px 12px", marginBottom: 12 }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: urgencyColor, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                      <div className="rounded-lg p-3 mb-3" style={{ background: accentBg }}>
+                        <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: accent }}>
                           Documents Required
-                        </div>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                          {docs.map((doc) => (
-                            <div key={doc} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                              <div style={{
-                                width: 16, height: 16, borderRadius: 4,
-                                border: `1.5px solid ${urgencyColor}`,
-                                flexShrink: 0,
-                              }} />
-                              <span style={{ fontSize: 12, color: "#374151" }}>{doc}</span>
+                        </p>
+                        <div className="space-y-1.5">
+                          {docs.map(doc => (
+                            <div key={doc} className="flex items-center gap-2">
+                              <div className="w-3.5 h-3.5 rounded border-[1.5px] flex-shrink-0" style={{ borderColor: accent }} />
+                              <span className="text-[12px] text-[#374151]">{doc}</span>
                             </div>
                           ))}
                         </div>
                       </div>
 
                       {/* Status */}
-                      <div style={{ marginBottom: 12 }}>
-                        <PortalStatus status={task.status} />
-                      </div>
+                      <p className="text-[12px] mb-3" style={{ color: accent }}>
+                        {task.status === "waiting_docs" ? "📋 Please upload documents now"
+                          : task.status === "docs_received" ? "⚙️ Documents received — CA is processing"
+                          : task.status === "overdue" ? "🚨 OVERDUE — contact your CA immediately"
+                          : "⏳ Awaiting your documents"}
+                      </p>
 
-                      {/* Upload button */}
+                      {/* Upload buttons */}
                       {(task.status === "pending" || task.status === "waiting_docs") && (
-                        <div style={{ display: "flex", gap: 8 }}>
-                          <button style={{
-                            flex: 1, background: urgencyColor, color: "#fff",
-                            border: "none", borderRadius: 8, padding: "12px",
-                            fontSize: 13, fontWeight: 700, cursor: "pointer",
-                            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                          }}>
-                            📷 Camera Upload
+                        <div className="flex gap-2">
+                          <button className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-white text-[13px] font-semibold transition-colors" style={{ background: accent }}>
+                            <Camera size={14} /> Camera
                           </button>
-                          <button style={{
-                            flex: 1, background: "#fff", color: urgencyColor,
-                            border: `1.5px solid ${urgencyColor}`, borderRadius: 8, padding: "12px",
-                            fontSize: 13, fontWeight: 700, cursor: "pointer",
-                            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                          }}>
-                            📁 File Upload
+                          <button className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-[13px] font-semibold border-[1.5px] transition-colors" style={{ color: accent, borderColor: accent, background: "white" }}>
+                            <Upload size={14} /> Upload File
                           </button>
                         </div>
                       )}
@@ -172,26 +150,19 @@ export default async function ClientPortalPage({
         )}
 
         {/* Filed */}
-        {filedTasks.length > 0 && (
-          <div style={{ marginBottom: 24 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
-              <span>✅</span> Completed
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {filedTasks.map((task) => (
-                <div key={task.id} style={{
-                  background: "#fff", borderRadius: 10, border: "1px solid #e5e7eb",
-                  padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between",
-                }}>
+        {filed.length > 0 && (
+          <div>
+            <p className="text-[10px] font-semibold text-[#A8A29E] uppercase tracking-wider mb-3">Completed</p>
+            <div className="space-y-2">
+              {filed.map(task => (
+                <div key={task.id} className="bg-white rounded-xl border border-[#E8E6E3] px-4 py-3 flex items-center justify-between shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>{formatComplianceType(task.compliance_type)}</div>
-                    <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 1 }}>{task.period}</div>
+                    <p className="text-[13px] font-medium text-[#57534E]">{formatComplianceType(task.compliance_type)}</p>
+                    <p className="text-[11px] text-[#A8A29E]">{task.period}</p>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ fontSize: 11, color: "#9ca3af" }}>{task.due_date}</span>
-                    <span style={{ background: "#d1fae5", color: "#065f46", fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 20 }}>
-                      Filed ✓
-                    </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-[#A8A29E]">{task.due_date}</span>
+                    <span className="px-2 py-0.5 rounded-full bg-[#ECFDF5] text-[#065F46] text-[10px] font-semibold">Filed ✓</span>
                   </div>
                 </div>
               ))}
@@ -199,48 +170,27 @@ export default async function ClientPortalPage({
           </div>
         )}
 
-        {activeTasks.length === 0 && filedTasks.length === 0 && (
-          <div style={{ textAlign: "center", padding: "48px 0" }}>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>🎉</div>
-            <p style={{ fontSize: 14, color: "#6b7280" }}>No pending compliances. You&apos;re all caught up!</p>
+        {active.length === 0 && filed.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-[32px] mb-3">🎉</p>
+            <p className="text-[14px] text-[#57534E]">No pending compliances.</p>
           </div>
         )}
 
         {/* Footer */}
-        <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: 16, textAlign: "center" }}>
-          <p style={{ fontSize: 11, color: "#9ca3af" }}>🔒 Secured by DeadlineShield · Do not share this link</p>
-          <p style={{ fontSize: 10, color: "#d1d5db", marginTop: 4 }}>
-            This portal is personalized for {client.name} only
-          </p>
+        <div className="pt-4 border-t border-[#F0EFED] text-center">
+          <p className="text-[11px] text-[#A8A29E]">🔒 Secured by DeadlineShield · Do not share this link</p>
         </div>
       </div>
     </div>
   );
 }
 
-function Pill({ value, label, color }: { value: number; label: string; color: string }) {
+function Stat({ n, label, color }: { n: number; label: string; color: string }) {
   return (
-    <div style={{ background: "rgba(255,255,255,0.15)", borderRadius: 8, padding: "6px 12px", textAlign: "center" }}>
-      <div style={{ fontSize: 18, fontWeight: 800, color }}>{value}</div>
-      <div style={{ fontSize: 10, color: "#c7d2fe" }}>{label}</div>
-    </div>
-  );
-}
-
-function PortalStatus({ status }: { status: string }) {
-  const map: Record<string, { icon: string; text: string; color: string }> = {
-    pending:       { icon: "⏳", text: "Awaiting your documents",                    color: "#6b7280" },
-    waiting_docs:  { icon: "📋", text: "Please upload documents now",                color: "#d97706" },
-    docs_received: { icon: "⚙️", text: "Documents received — CA is processing",     color: "#2563eb" },
-    in_progress:   { icon: "⚙️", text: "Filing in progress",                        color: "#2563eb" },
-    review_ready:  { icon: "🔍", text: "Under partner review",                       color: "#7c3aed" },
-    overdue:       { icon: "🚨", text: "OVERDUE — contact your CA immediately",      color: "#dc2626" },
-  };
-  const info = map[status] ?? { icon: "•", text: status, color: "#6b7280" };
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: info.color, fontWeight: 500 }}>
-      <span>{info.icon}</span>
-      {info.text}
+    <div className="flex-1 bg-[#FAFAF9] rounded-lg border border-[#E8E6E3] px-3 py-2 text-center">
+      <p className="text-[18px] font-bold" style={{ color }}>{n}</p>
+      <p className="text-[10px] text-[#A8A29E]">{label}</p>
     </div>
   );
 }

@@ -1,151 +1,109 @@
 import { getClients, getAllTasks } from "@/lib/data";
 import { getRiskLevel, formatComplianceType } from "@/lib/utils";
 import Link from "next/link";
+import { Plus, ArrowRight } from "lucide-react";
 
 export default async function ClientsPage() {
   const [clients, tasks] = await Promise.all([getClients(), getAllTasks()]);
 
-  const tasksByClient = tasks.reduce<Record<string, typeof tasks>>((acc, t) => {
-    if (!acc[t.client_id]) acc[t.client_id] = [];
-    acc[t.client_id].push(t);
-    return acc;
+  const byClient = tasks.reduce<Record<string, typeof tasks>>((a, t) => {
+    (a[t.client_id] ??= []).push(t); return a;
   }, {});
 
   const enriched = clients.map((c) => {
-    const all = tasksByClient[c.id] ?? [];
+    const all    = byClient[c.id] ?? [];
     const active = all.filter((t) => t.status !== "filed");
-    return { ...c, riskLevel: getRiskLevel(active), activeCount: active.length, totalCount: all.length };
+    return { ...c, risk: getRiskLevel(active), activeCount: active.length };
   });
 
-  const riskDot = { red: "#dc2626", yellow: "#d97706", green: "#059669" };
-  const riskLabel = { red: "Critical", yellow: "Waiting", green: "On Track" };
-  const riskBg = { red: "#fef2f2", yellow: "#fffbeb", green: "#f0fdf4" };
-  const riskText = { red: "#991b1b", yellow: "#92400e", green: "#166534" };
+  const RISK = {
+    red:    { dot: "#DC2626", label: "Critical",     bg: "#FEF2F2", text: "#991B1B" },
+    yellow: { dot: "#D97706", label: "Awaiting",     bg: "#FFFBEB", text: "#92400E" },
+    green:  { dot: "#059669", label: "On Track",     bg: "#ECFDF5", text: "#065F46" },
+  };
 
   return (
-    <div style={{ padding: 28, maxWidth: 1100 }}>
-
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+    <div className="p-7 max-w-[1080px]">
+      <div className="flex items-center justify-between mb-7">
         <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: "#111827" }}>Clients</h1>
-          <p style={{ fontSize: 13, color: "#6b7280", marginTop: 3 }}>{clients.length} active clients</p>
+          <h1 className="text-[20px] font-semibold text-[#1C1917] tracking-tight">Clients</h1>
+          <p className="text-[13px] text-[#A8A29E] mt-0.5">{clients.length} active clients</p>
         </div>
-        <Link href="/dashboard/clients/new" style={{
-          background: "#4f46e5", color: "#fff",
-          padding: "9px 18px", borderRadius: 8,
-          fontSize: 13, fontWeight: 600, textDecoration: "none",
-        }}>
-          + Add Client
+        <Link
+          href="/dashboard/clients/new"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#6D28D9] text-white text-[13px] font-medium hover:bg-[#5B21B6] shadow-[0_1px_2px_rgba(109,40,217,0.25)] transition-colors"
+        >
+          <Plus size={14} />
+          Add Client
         </Link>
       </div>
 
-      {/* Table */}
-      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      <div className="bg-white rounded-xl border border-[#E8E6E3] shadow-[0_1px_3px_rgba(0,0,0,0.05)] overflow-hidden">
+        <table className="w-full">
           <thead>
-            <tr style={{ background: "#f9fafb", borderBottom: "1px solid #e5e7eb" }}>
+            <tr className="border-b border-[#F0EFED]">
               {["Client", "PAN / GSTIN", "Compliances", "Risk", "Tasks", ""].map((h) => (
-                <th key={h} style={{
-                  textAlign: "left", padding: "11px 18px",
-                  fontSize: 11, fontWeight: 600, color: "#6b7280",
-                  textTransform: "uppercase", letterSpacing: "0.05em",
-                }}>
+                <th key={h} className="text-left px-5 py-3 text-[11px] font-semibold text-[#A8A29E] uppercase tracking-wider bg-[#FAFAF9]">
                   {h}
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {enriched.map((client, i) => (
-              <tr key={client.id} style={{
-                borderBottom: i < enriched.length - 1 ? "1px solid #f3f4f6" : "none",
-              }}
-              className="table-row"
-              >
-                {/* Client */}
-                <td style={{ padding: "14px 18px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <div style={{
-                      width: 34, height: 34, borderRadius: 8,
-                      background: "#ede9fe",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: 13, fontWeight: 700, color: "#4f46e5", flexShrink: 0,
-                    }}>
-                      {client.name.charAt(0)}
+            {enriched.map((c, i) => {
+              const r = RISK[c.risk];
+              return (
+                <tr
+                  key={c.id}
+                  className="border-b border-[#F5F5F4] last:border-0 hover:bg-[#FAFAF9] transition-colors"
+                >
+                  <td className="px-5 py-3.5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-[#EDE9FE] flex items-center justify-center text-[12px] font-bold text-[#6D28D9] flex-shrink-0">
+                        {c.name.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="text-[13px] font-semibold text-[#1C1917]">{c.name}</p>
+                        {c.contact_name && <p className="text-[11px] text-[#A8A29E]">{c.contact_name}</p>}
+                      </div>
                     </div>
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: "#111827" }}>{client.name}</div>
-                      {client.contact_name && (
-                        <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 1 }}>{client.contact_name}</div>
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <p className="text-[12px] font-mono text-[#57534E]">{c.pan ?? "—"}</p>
+                    <p className="text-[11px] font-mono text-[#A8A29E] mt-0.5">{c.gstin ?? "—"}</p>
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <div className="flex flex-wrap gap-1">
+                      {c.compliance_types.slice(0, 3).map((t) => (
+                        <span key={t} className="px-2 py-0.5 rounded-md bg-[#F5F5F4] text-[#57534E] text-[10px] font-medium">
+                          {formatComplianceType(t)}
+                        </span>
+                      ))}
+                      {c.compliance_types.length > 3 && (
+                        <span className="text-[11px] text-[#A8A29E] self-center">+{c.compliance_types.length - 3}</span>
                       )}
                     </div>
-                  </div>
-                </td>
-
-                {/* PAN / GSTIN */}
-                <td style={{ padding: "14px 18px" }}>
-                  <div style={{ fontSize: 12, fontFamily: "monospace", color: "#374151" }}>{client.pan ?? "—"}</div>
-                  <div style={{ fontSize: 11, fontFamily: "monospace", color: "#9ca3af", marginTop: 2 }}>{client.gstin ?? "—"}</div>
-                </td>
-
-                {/* Compliances */}
-                <td style={{ padding: "14px 18px" }}>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                    {client.compliance_types.slice(0, 3).map((t) => (
-                      <span key={t} style={{
-                        background: "#f3f4f6", color: "#374151",
-                        fontSize: 10, fontWeight: 500,
-                        padding: "2px 7px", borderRadius: 4,
-                      }}>
-                        {formatComplianceType(t)}
-                      </span>
-                    ))}
-                    {client.compliance_types.length > 3 && (
-                      <span style={{ fontSize: 11, color: "#9ca3af" }}>
-                        +{client.compliance_types.length - 3}
-                      </span>
-                    )}
-                  </div>
-                </td>
-
-                {/* Risk */}
-                <td style={{ padding: "14px 18px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <span style={{ width: 7, height: 7, borderRadius: "50%", background: riskDot[client.riskLevel] }} />
-                    <span style={{
-                      fontSize: 11, fontWeight: 600,
-                      background: riskBg[client.riskLevel],
-                      color: riskText[client.riskLevel],
-                      padding: "2px 8px", borderRadius: 20,
-                    }}>
-                      {riskLabel[client.riskLevel]}
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium" style={{ background: r.bg, color: r.text }}>
+                      <span className="w-1.5 h-1.5 rounded-full" style={{ background: r.dot }} />
+                      {r.label}
                     </span>
-                  </div>
-                </td>
-
-                {/* Tasks */}
-                <td style={{ padding: "14px 18px" }}>
-                  <span style={{ fontSize: 12, color: "#6b7280" }}>{client.activeCount} active</span>
-                </td>
-
-                {/* Action */}
-                <td style={{ padding: "14px 18px" }}>
-                  <Link href={`/dashboard/clients/${client.id}`} style={{
-                    fontSize: 12, fontWeight: 600, color: "#4f46e5", textDecoration: "none",
-                  }}>
-                    View →
-                  </Link>
-                </td>
-              </tr>
-            ))}
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <span className="text-[12px] text-[#A8A29E]">{c.activeCount} active</span>
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <Link href={`/dashboard/clients/${c.id}`} className="inline-flex items-center gap-1 text-[12px] font-semibold text-[#6D28D9] hover:text-[#5B21B6] transition-colors">
+                      View <ArrowRight size={12} />
+                    </Link>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
-
-      <style>{`
-        .table-row:hover { background: #fafafa; }
-      `}</style>
     </div>
   );
 }

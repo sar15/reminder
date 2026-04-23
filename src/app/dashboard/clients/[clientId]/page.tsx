@@ -2,6 +2,7 @@ import { getClient, getTasksForClient, getAuditLogsForClient } from "@/lib/data"
 import { formatComplianceType, daysUntilDue, getRiskLevel, getPenaltyPerDay } from "@/lib/utils";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { ArrowLeft, Send, FileText, Mail, Phone } from "lucide-react";
 import AddTaskForm from "./AddTaskForm";
 
 export default async function ClientDetailPage({
@@ -9,231 +10,173 @@ export default async function ClientDetailPage({
 }: { params: Promise<{ clientId: string }> }) {
   const { clientId } = await params;
   const [client, tasks, logs] = await Promise.all([
-    getClient(clientId),
-    getTasksForClient(clientId),
-    getAuditLogsForClient(clientId),
+    getClient(clientId), getTasksForClient(clientId), getAuditLogsForClient(clientId),
   ]);
   if (!client) notFound();
 
-  const activeTasks = tasks.filter((t) => t.status !== "filed");
-  const filedTasks  = tasks.filter((t) => t.status === "filed");
-  const riskLevel   = getRiskLevel(activeTasks);
+  const active  = tasks.filter((t) => t.status !== "filed");
+  const filed   = tasks.filter((t) => t.status === "filed");
+  const risk    = getRiskLevel(active);
 
-  const penaltyExposure = activeTasks
+  const penalty = active
     .filter((t) => daysUntilDue(t.due_date) < 0)
-    .reduce((sum, t) => sum + getPenaltyPerDay(t.compliance_type) * Math.abs(daysUntilDue(t.due_date)), 0);
+    .reduce((s, t) => s + getPenaltyPerDay(t.compliance_type) * Math.abs(daysUntilDue(t.due_date)), 0);
 
-  const riskCfg = {
-    red:    { label: "Critical",     bg: "#fef2f2", border: "#fecaca", text: "#991b1b", dot: "#dc2626" },
-    yellow: { label: "Awaiting Docs",bg: "#fffbeb", border: "#fde68a", text: "#92400e", dot: "#d97706" },
-    green:  { label: "On Track",     bg: "#f0fdf4", border: "#bbf7d0", text: "#166534", dot: "#059669" },
-  }[riskLevel];
+  const RISK = {
+    red:    { label: "Critical",      bg: "#FEF2F2", border: "#FECACA", text: "#991B1B", dot: "#DC2626" },
+    yellow: { label: "Awaiting Docs", bg: "#FFFBEB", border: "#FDE68A", text: "#92400E", dot: "#D97706" },
+    green:  { label: "On Track",      bg: "#ECFDF5", border: "#A7F3D0", text: "#065F46", dot: "#059669" },
+  }[risk];
 
-  const auditIcon: Record<string, string> = {
-    reminder_sent: "📤", delivered: "✅", opened: "👁️",
-    doc_uploaded: "📎", filed: "🏛️", escalated: "🚨",
-  };
-  const auditLabel: Record<string, string> = {
-    reminder_sent: "Reminder Sent", delivered: "Delivered",
-    opened: "Opened by Client", doc_uploaded: "Document Uploaded",
-    filed: "Return Filed", escalated: "Escalated to Partner",
-  };
-  const auditColor: Record<string, string> = {
-    reminder_sent: "#4f46e5", delivered: "#059669", opened: "#2563eb",
-    doc_uploaded: "#059669", filed: "#065f46", escalated: "#dc2626",
+  const STATUS: Record<string, { bg: string; text: string; label: string }> = {
+    pending:       { bg: "#F5F5F4", text: "#57534E", label: "Pending" },
+    waiting_docs:  { bg: "#FFFBEB", text: "#92400E", label: "Waiting Docs" },
+    docs_received: { bg: "#EFF6FF", text: "#1E40AF", label: "Docs Received" },
+    in_progress:   { bg: "#EFF6FF", text: "#1E40AF", label: "In Progress" },
+    review_ready:  { bg: "#EDE9FE", text: "#5B21B6", label: "Review Ready" },
+    filed:         { bg: "#ECFDF5", text: "#065F46", label: "Filed ✓" },
+    overdue:       { bg: "#FEF2F2", text: "#991B1B", label: "Overdue" },
   };
 
-  const statusCfg: Record<string, { bg: string; text: string; label: string }> = {
-    pending:      { bg: "#f3f4f6", text: "#374151", label: "Pending" },
-    waiting_docs: { bg: "#fef3c7", text: "#92400e", label: "Waiting Docs" },
-    docs_received:{ bg: "#dbeafe", text: "#1e40af", label: "Docs Received" },
-    in_progress:  { bg: "#dbeafe", text: "#1e40af", label: "In Progress" },
-    review_ready: { bg: "#ede9fe", text: "#5b21b6", label: "Review Ready" },
-    filed:        { bg: "#d1fae5", text: "#065f46", label: "Filed ✓" },
-    overdue:      { bg: "#fee2e2", text: "#991b1b", label: "Overdue" },
+  const AUDIT_CFG: Record<string, { icon: string; label: string; color: string }> = {
+    reminder_sent: { icon: "📤", label: "Reminder Sent",       color: "#6D28D9" },
+    delivered:     { icon: "✅", label: "Delivered",            color: "#059669" },
+    opened:        { icon: "👁️", label: "Opened by Client",    color: "#2563EB" },
+    doc_uploaded:  { icon: "📎", label: "Document Uploaded",   color: "#059669" },
+    filed:         { icon: "🏛️", label: "Return Filed",        color: "#065F46" },
+    escalated:     { icon: "🚨", label: "Escalated",           color: "#DC2626" },
   };
 
   return (
-    <div style={{ padding: 28, maxWidth: 1100 }}>
+    <div className="p-7 max-w-[1080px]">
 
-      {/* ── Header ── */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <Link href="/dashboard/clients" style={{
-            width: 32, height: 32, borderRadius: 8,
-            background: "#fff", border: "1px solid #e5e7eb",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            textDecoration: "none", fontSize: 16, color: "#374151",
-          }}>
-            ←
+      {/* Header */}
+      <div className="flex items-start justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <Link href="/dashboard/clients" className="w-8 h-8 rounded-lg bg-white border border-[#E8E6E3] flex items-center justify-center text-[#57534E] hover:bg-[#F5F5F4] transition-colors">
+            <ArrowLeft size={14} />
           </Link>
-          <div style={{
-            width: 42, height: 42, borderRadius: 10,
-            background: "#ede9fe",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 16, fontWeight: 700, color: "#4f46e5",
-          }}>
+          <div className="w-10 h-10 rounded-xl bg-[#EDE9FE] flex items-center justify-center text-[15px] font-bold text-[#6D28D9]">
             {client.name.charAt(0)}
           </div>
           <div>
-            <h1 style={{ fontSize: 20, fontWeight: 700, color: "#111827" }}>{client.name}</h1>
-            <div style={{ display: "flex", gap: 12, marginTop: 3 }}>
-              {client.pan   && <span style={{ fontSize: 11, fontFamily: "monospace", color: "#6b7280" }}>PAN: {client.pan}</span>}
-              {client.gstin && <span style={{ fontSize: 11, fontFamily: "monospace", color: "#6b7280" }}>GSTIN: {client.gstin}</span>}
-              {client.email && <span style={{ fontSize: 11, color: "#6b7280" }}>{client.email}</span>}
+            <h1 className="text-[20px] font-semibold text-[#1C1917] tracking-tight">{client.name}</h1>
+            <div className="flex items-center gap-3 mt-0.5">
+              {client.pan   && <span className="text-[11px] font-mono text-[#A8A29E]">PAN: {client.pan}</span>}
+              {client.gstin && <span className="text-[11px] font-mono text-[#A8A29E]">GSTIN: {client.gstin}</span>}
             </div>
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: 8 }}>
-          <div style={{
-            display: "flex", alignItems: "center", gap: 6,
-            background: riskCfg.bg, border: `1px solid ${riskCfg.border}`,
-            borderRadius: 8, padding: "6px 12px",
-            fontSize: 12, fontWeight: 600, color: riskCfg.text,
-          }}>
-            <span style={{ width: 7, height: 7, borderRadius: "50%", background: riskCfg.dot }} />
-            {riskCfg.label}
-          </div>
-          <Link href={`/dashboard/clients/${clientId}/remind`} style={{
-            background: "#4f46e5", color: "#fff",
-            padding: "8px 16px", borderRadius: 8,
-            fontSize: 13, fontWeight: 600, textDecoration: "none",
-          }}>
-            Send Reminder
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[12px] font-semibold" style={{ background: RISK.bg, borderColor: RISK.border, color: RISK.text }}>
+            <span className="w-1.5 h-1.5 rounded-full" style={{ background: RISK.dot }} />
+            {RISK.label}
+          </span>
+          <Link href={`/dashboard/clients/${clientId}/remind`} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#6D28D9] text-white text-[13px] font-medium hover:bg-[#5B21B6] transition-colors">
+            <Send size={13} /> Send Reminder
           </Link>
-          <Link href={`/dashboard/reports/${clientId}`} style={{
-            background: "#fff", color: "#374151",
-            border: "1px solid #e5e7eb",
-            padding: "8px 16px", borderRadius: 8,
-            fontSize: 13, fontWeight: 600, textDecoration: "none",
-          }}>
-            Liability Report
+          <Link href={`/dashboard/reports/${clientId}`} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-[#E8E6E3] text-[#1C1917] text-[13px] font-medium hover:bg-[#F5F5F4] transition-colors">
+            <FileText size={13} /> Liability Report
           </Link>
         </div>
       </div>
 
-      {/* ── Penalty exposure ── */}
-      {penaltyExposure > 0 && (
-        <div style={{
-          background: "#fef2f2", border: "1px solid #fecaca",
-          borderRadius: 10, padding: "12px 18px", marginBottom: 20,
-          display: "flex", alignItems: "center", gap: 12,
-        }}>
-          <span style={{ fontSize: 20 }}>⚠️</span>
-          <div>
-            <span style={{ fontSize: 13, fontWeight: 700, color: "#991b1b" }}>
-              Penalty Exposure: ₹{penaltyExposure.toLocaleString("en-IN")}
-            </span>
-            <span style={{ fontSize: 12, color: "#dc2626", marginLeft: 8 }}>
-              accruing daily — send reminder immediately
-            </span>
+      {/* Contact strip */}
+      <div className="flex items-center gap-4 mb-5 p-3.5 bg-white rounded-xl border border-[#E8E6E3]">
+        {client.email && (
+          <div className="flex items-center gap-2 text-[12px] text-[#57534E]">
+            <Mail size={12} className="text-[#A8A29E]" /> {client.email}
           </div>
-        </div>
-      )}
+        )}
+        {client.phone && (
+          <div className="flex items-center gap-2 text-[12px] text-[#57534E]">
+            <Phone size={12} className="text-[#A8A29E]" /> {client.phone}
+          </div>
+        )}
+        {penalty > 0 && (
+          <div className="ml-auto flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#FEF2F2] border border-[#FECACA]">
+            <span className="text-[12px] font-bold text-[#991B1B]">⚠ Penalty Exposure: ₹{penalty.toLocaleString("en-IN")}</span>
+            <span className="text-[11px] text-[#DC2626]">accruing daily</span>
+          </div>
+        )}
+      </div>
 
-      {/* ── 2-col layout ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 20 }}>
+      {/* 2-col layout */}
+      <div className="grid grid-cols-[1fr_280px] gap-5">
 
-        {/* Left — tasks */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        {/* Left */}
+        <div className="space-y-4">
 
           {/* Active tasks */}
-          <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>
-            <div style={{
-              padding: "14px 18px", borderBottom: "1px solid #f3f4f6",
-              display: "flex", alignItems: "center", justifyContent: "space-between",
-            }}>
-              <span style={{ fontSize: 14, fontWeight: 600, color: "#111827" }}>Active Tasks</span>
-              <span style={{ fontSize: 12, color: "#9ca3af" }}>{activeTasks.length} pending</span>
+          <div className="bg-white rounded-xl border border-[#E8E6E3] overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+            <div className="px-5 py-3.5 border-b border-[#F0EFED] flex items-center justify-between">
+              <span className="text-[13px] font-semibold text-[#1C1917]">Active Tasks</span>
+              <span className="text-[11px] text-[#A8A29E]">{active.length} pending</span>
             </div>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <table className="w-full">
               <thead>
-                <tr style={{ background: "#f9fafb", borderBottom: "1px solid #f3f4f6" }}>
+                <tr className="bg-[#FAFAF9] border-b border-[#F0EFED]">
                   {["Compliance", "Period", "Due Date", "Status"].map((h) => (
-                    <th key={h} style={{
-                      textAlign: "left", padding: "9px 18px",
-                      fontSize: 11, fontWeight: 600, color: "#6b7280",
-                      textTransform: "uppercase", letterSpacing: "0.05em",
-                    }}>{h}</th>
+                    <th key={h} className="text-left px-5 py-2.5 text-[10px] font-semibold text-[#A8A29E] uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {activeTasks.map((task, i) => {
-                  const days = daysUntilDue(task.due_date);
-                  const penalty = getPenaltyPerDay(task.compliance_type);
-                  const s = statusCfg[task.status] ?? statusCfg.pending;
+                {active.map((t, i) => {
+                  const d = daysUntilDue(t.due_date);
+                  const p = getPenaltyPerDay(t.compliance_type);
+                  const s = STATUS[t.status] ?? STATUS.pending;
                   return (
-                    <tr key={task.id} style={{
-                      borderBottom: i < activeTasks.length - 1 ? "1px solid #f3f4f6" : "none",
-                      background: days < 0 ? "#fff9f9" : "transparent",
-                    }}>
-                      <td style={{ padding: "12px 18px" }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: "#111827" }}>
-                          {formatComplianceType(task.compliance_type)}
-                        </div>
-                        {penalty > 0 && (
-                          <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 2 }}>₹{penalty}/day penalty</div>
-                        )}
+                    <tr key={t.id} className={`border-b border-[#F5F5F4] last:border-0 ${d < 0 ? "bg-[#FFFAFA]" : "hover:bg-[#FAFAF9]"} transition-colors`}>
+                      <td className="px-5 py-3">
+                        <p className="text-[13px] font-medium text-[#1C1917]">{formatComplianceType(t.compliance_type)}</p>
+                        {p > 0 && <p className="text-[10px] text-[#A8A29E] mt-0.5">₹{p}/day penalty</p>}
                       </td>
-                      <td style={{ padding: "12px 18px", fontSize: 12, color: "#6b7280" }}>{task.period}</td>
-                      <td style={{ padding: "12px 18px" }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: days < 0 ? "#dc2626" : days <= 5 ? "#d97706" : "#111827" }}>
-                          {task.due_date}
-                        </div>
-                        <div style={{ fontSize: 11, color: days < 0 ? "#dc2626" : "#9ca3af", marginTop: 2 }}>
-                          {days < 0 ? `${Math.abs(days)}d overdue` : `${days}d remaining`}
-                        </div>
+                      <td className="px-5 py-3 text-[12px] text-[#57534E]">{t.period}</td>
+                      <td className="px-5 py-3">
+                        <p className="text-[13px] font-semibold" style={{ color: d < 0 ? "#DC2626" : d <= 5 ? "#D97706" : "#1C1917" }}>
+                          {t.due_date}
+                        </p>
+                        <p className="text-[10px] mt-0.5" style={{ color: d < 0 ? "#DC2626" : "#A8A29E" }}>
+                          {d < 0 ? `${Math.abs(d)}d overdue` : `${d}d remaining`}
+                        </p>
                       </td>
-                      <td style={{ padding: "12px 18px" }}>
-                        <span style={{
-                          fontSize: 11, fontWeight: 600,
-                          background: s.bg, color: s.text,
-                          padding: "3px 8px", borderRadius: 20,
-                        }}>
+                      <td className="px-5 py-3">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold" style={{ background: s.bg, color: s.text }}>
                           {s.label}
                         </span>
                       </td>
                     </tr>
                   );
                 })}
-                {activeTasks.length === 0 && (
-                  <tr>
-                    <td colSpan={4} style={{ padding: "32px 18px", textAlign: "center", color: "#9ca3af", fontSize: 13 }}>
-                      ✅ All tasks filed. Client is fully compliant.
-                    </td>
-                  </tr>
+                {active.length === 0 && (
+                  <tr><td colSpan={4} className="px-5 py-8 text-center text-[13px] text-[#A8A29E]">
+                    ✅ All tasks filed. Client is fully compliant.
+                  </td></tr>
                 )}
               </tbody>
             </table>
           </div>
 
-          {/* Add task */}
           <AddTaskForm clientId={clientId} complianceTypes={client.compliance_types as string[]} />
 
           {/* Filed */}
-          {filedTasks.length > 0 && (
-            <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>
-              <div style={{ padding: "14px 18px", borderBottom: "1px solid #f3f4f6", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ fontSize: 14, fontWeight: 600, color: "#111827" }}>Filed Returns</span>
-                <span style={{ fontSize: 12, color: "#059669", fontWeight: 600 }}>{filedTasks.length} completed</span>
+          {filed.length > 0 && (
+            <div className="bg-white rounded-xl border border-[#E8E6E3] overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+              <div className="px-5 py-3.5 border-b border-[#F0EFED] flex items-center justify-between">
+                <span className="text-[13px] font-semibold text-[#1C1917]">Filed Returns</span>
+                <span className="text-[11px] font-semibold text-[#059669]">{filed.length} completed</span>
               </div>
-              {filedTasks.map((task, i) => (
-                <div key={task.id} style={{
-                  padding: "12px 18px",
-                  borderBottom: i < filedTasks.length - 1 ? "1px solid #f3f4f6" : "none",
-                  display: "flex", alignItems: "center", justifyContent: "space-between",
-                }}>
+              {filed.map((t, i) => (
+                <div key={t.id} className={`px-5 py-3 flex items-center justify-between ${i < filed.length - 1 ? "border-b border-[#F5F5F4]" : ""}`}>
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: "#374151" }}>{formatComplianceType(task.compliance_type)}</div>
-                    <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 1 }}>{task.period}</div>
+                    <p className="text-[13px] font-medium text-[#57534E]">{formatComplianceType(t.compliance_type)}</p>
+                    <p className="text-[11px] text-[#A8A29E]">{t.period}</p>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ fontSize: 12, color: "#9ca3af" }}>{task.due_date}</span>
-                    <span style={{ background: "#d1fae5", color: "#065f46", fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 20 }}>
-                      Filed ✓
-                    </span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[11px] text-[#A8A29E]">{t.due_date}</span>
+                    <span className="px-2 py-0.5 rounded-full bg-[#ECFDF5] text-[#065F46] text-[10px] font-semibold">Filed ✓</span>
                   </div>
                 </div>
               ))}
@@ -241,52 +184,38 @@ export default async function ClientDetailPage({
           )}
         </div>
 
-        {/* Right — audit trail + compliance types */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-
-          {/* Audit trail */}
-          <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>
-            <div style={{ padding: "14px 18px", borderBottom: "1px solid #f3f4f6" }}>
-              <div style={{ fontSize: 14, fontWeight: 600, color: "#111827" }}>Audit Trail</div>
-              <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>Immutable · Court-admissible</div>
+        {/* Right — audit trail */}
+        <div className="space-y-4">
+          <div className="bg-white rounded-xl border border-[#E8E6E3] overflow-hidden shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+            <div className="px-4 py-3.5 border-b border-[#F0EFED]">
+              <p className="text-[13px] font-semibold text-[#1C1917]">Audit Trail</p>
+              <p className="text-[10px] text-[#A8A29E] mt-0.5">Immutable · Court-admissible</p>
             </div>
-            <div style={{ padding: 16, maxHeight: 400, overflowY: "auto" }}>
+            <div className="p-4 max-h-[420px] overflow-y-auto">
               {logs.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "24px 0", color: "#9ca3af", fontSize: 12 }}>
-                  No activity yet
-                </div>
+                <p className="text-[12px] text-[#A8A29E] text-center py-6">No activity yet</p>
               ) : (
-                <div style={{ position: "relative" }}>
-                  <div style={{ position: "absolute", left: 11, top: 8, bottom: 8, width: 1, background: "#f3f4f6" }} />
-                  <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                    {logs.map((log) => (
-                      <div key={log.id} style={{ display: "flex", gap: 10 }}>
-                        <div style={{
-                          width: 22, height: 22, borderRadius: "50%",
-                          background: "#fff", border: "1px solid #e5e7eb",
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                          fontSize: 11, flexShrink: 0, zIndex: 1,
-                        }}>
-                          {auditIcon[log.action] ?? "•"}
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: 12, fontWeight: 600, color: auditColor[log.action] ?? "#374151" }}>
-                            {auditLabel[log.action] ?? log.action}
+                <div className="relative">
+                  <div className="absolute left-[10px] top-2 bottom-2 w-px bg-[#F0EFED]" />
+                  <div className="space-y-4">
+                    {logs.map((log) => {
+                      const cfg = AUDIT_CFG[log.action] ?? { icon: "•", label: log.action, color: "#57534E" };
+                      return (
+                        <div key={log.id} className="flex gap-3 relative">
+                          <div className="w-5 h-5 rounded-full bg-white border border-[#E8E6E3] flex items-center justify-center text-[10px] flex-shrink-0 z-10">
+                            {cfg.icon}
                           </div>
-                          {log.channel && <div style={{ fontSize: 10, color: "#9ca3af" }}>via {log.channel}</div>}
-                          {log.message_id && (
-                            <div style={{ fontSize: 10, color: "#d1d5db", fontFamily: "monospace", marginTop: 1 }}>
-                              {log.message_id}
-                            </div>
-                          )}
-                          <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 2 }}>
-                            {new Date(log.timestamp).toLocaleString("en-IN", {
-                              day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
-                            })}
+                          <div className="flex-1 pb-1">
+                            <p className="text-[12px] font-semibold" style={{ color: cfg.color }}>{cfg.label}</p>
+                            {log.channel && <p className="text-[10px] text-[#A8A29E]">via {log.channel}</p>}
+                            {log.message_id && <p className="text-[10px] text-[#D6D3CF] font-mono truncate">{log.message_id}</p>}
+                            <p className="text-[10px] text-[#A8A29E] mt-0.5">
+                              {new Date(log.timestamp).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                            </p>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -294,18 +223,11 @@ export default async function ClientDetailPage({
           </div>
 
           {/* Compliance types */}
-          <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 16 }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>
-              Applicable Compliances
-            </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          <div className="bg-white rounded-xl border border-[#E8E6E3] p-4 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+            <p className="text-[10px] font-semibold text-[#A8A29E] uppercase tracking-wider mb-3">Applicable Compliances</p>
+            <div className="flex flex-wrap gap-1.5">
               {client.compliance_types.map((t) => (
-                <span key={t} style={{
-                  background: "#f5f3ff", color: "#4f46e5",
-                  fontSize: 11, fontWeight: 500,
-                  padding: "3px 8px", borderRadius: 6,
-                  border: "1px solid #ede9fe",
-                }}>
+                <span key={t} className="px-2 py-1 rounded-md bg-[#EDE9FE] text-[#5B21B6] text-[10px] font-medium border border-[#DDD6FE]">
                   {formatComplianceType(t)}
                 </span>
               ))}
