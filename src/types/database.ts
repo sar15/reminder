@@ -114,7 +114,10 @@ export type Database = {
           expires_at: string
           firm_id: string
           id: string
+          task_id: string | null
           token: string
+          token_hash: string
+          used_at: string | null
         }
         Insert: {
           client_id: string
@@ -122,7 +125,10 @@ export type Database = {
           expires_at: string
           firm_id: string
           id?: string
+          task_id?: string | null
           token: string
+          token_hash: string
+          used_at?: string | null
         }
         Update: {
           client_id?: string
@@ -130,7 +136,10 @@ export type Database = {
           expires_at?: string
           firm_id?: string
           id?: string
+          task_id?: string | null
           token?: string
+          token_hash?: string
+          used_at?: string | null
         }
         Relationships: [
           {
@@ -457,6 +466,79 @@ export type Database = {
             columns: ["firm_id"]
             isOneToOne: false
             referencedRelation: "firms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reminder_jobs: {
+        Row: {
+          id: string
+          firm_id: string
+          client_id: string
+          task_id: string
+          cadence: string
+          channel: string
+          status: string
+          scheduled_for: string
+          attempts: number
+          last_error: string | null
+          provider_message_id: string | null
+          created_at: string
+          updated_at: string
+          sent_at: string | null
+        }
+        Insert: {
+          id?: string
+          firm_id: string
+          client_id: string
+          task_id: string
+          cadence: string
+          channel?: string
+          status?: string
+          scheduled_for: string
+          attempts?: number
+          last_error?: string | null
+          provider_message_id?: string | null
+          created_at?: string
+          updated_at?: string
+          sent_at?: string | null
+        }
+        Update: {
+          id?: string
+          firm_id?: string
+          client_id?: string
+          task_id?: string
+          cadence?: string
+          channel?: string
+          status?: string
+          scheduled_for?: string
+          attempts?: number
+          last_error?: string | null
+          provider_message_id?: string | null
+          created_at?: string
+          updated_at?: string
+          sent_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reminder_jobs_firm_id_fkey"
+            columns: ["firm_id"]
+            isOneToOne: false
+            referencedRelation: "firms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminder_jobs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminder_jobs_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "compliance_tasks"
             referencedColumns: ["id"]
           },
         ]

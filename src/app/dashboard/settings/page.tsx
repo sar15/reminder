@@ -8,7 +8,6 @@ export default async function SettingsPage() {
   const integrations = [
     { name: "Supabase",       env: "NEXT_PUBLIC_SUPABASE_URL",  docs: "https://supabase.com/docs",                          required: true  },
     { name: "Resend (Email)", env: "RESEND_API_KEY",            docs: "https://resend.com/docs",                            required: true  },
-    { name: "WhatsApp",       env: "WHATSAPP_WEBHOOK_URL",      docs: "https://developers.facebook.com/docs/whatsapp",      required: false },
     { name: "Cron Secret",    env: "CRON_SECRET",               docs: "https://vercel.com/docs/cron-jobs",                  required: true  },
   ];
 

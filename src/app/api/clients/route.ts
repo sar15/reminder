@@ -1,5 +1,5 @@
 import { getAuthenticatedUser } from "@/lib/auth";
-import { createClientsAndTasks, DEMO_FIRM_ID } from "@/lib/onboarding";
+import { createClientsAndTasks } from "@/lib/onboarding";
 import { normalizeReminderRules } from "@/lib/reminder-rules";
 import { createClientSchema, bulkClientSchema } from "@/lib/validations";
 import { apiSuccess, apiError, apiValidationError, ErrorCode, withErrorHandler } from "@/lib/api-response";
@@ -11,6 +11,10 @@ import { apiSuccess, apiError, apiValidationError, ErrorCode, withErrorHandler }
  */
 export const POST = withErrorHandler(async (req: Request) => {
   const auth = await getAuthenticatedUser();
+  if (!auth) {
+    return apiError("Unauthorized", ErrorCode.UNAUTHORIZED, 401);
+  }
+
   const body = await req.json();
   const parsed = createClientSchema.safeParse(body);
 
@@ -19,12 +23,12 @@ export const POST = withErrorHandler(async (req: Request) => {
   }
 
   const { firm_id, auto_generate_tasks, rules, ...clientData } = parsed.data;
-
-  // Use authenticated firm_id if available, fallback to provided or demo
-  const effectiveFirmId = auth?.firmId ?? firm_id ?? DEMO_FIRM_ID;
+  if (firm_id && firm_id !== auth.firmId) {
+    return apiError("Unauthorized: firm mismatch", ErrorCode.UNAUTHORIZED, 403);
+  }
 
   const result = await createClientsAndTasks({
-    firmId: effectiveFirmId,
+    firmId: auth.firmId,
     autoGenerateTasks: auto_generate_tasks,
     rules: Array.isArray(rules) ? normalizeReminderRules(rules) : undefined,
     clients: [clientData],
@@ -51,6 +55,10 @@ export const POST = withErrorHandler(async (req: Request) => {
  */
 export const PUT = withErrorHandler(async (req: Request) => {
   const auth = await getAuthenticatedUser();
+  if (!auth) {
+    return apiError("Unauthorized", ErrorCode.UNAUTHORIZED, 401);
+  }
+
   const body = await req.json();
   const parsed = bulkClientSchema.safeParse(body);
 
@@ -59,13 +67,13 @@ export const PUT = withErrorHandler(async (req: Request) => {
   }
 
   const { clients, firm_id, auto_generate_tasks, rules } = parsed.data;
-
-  // Use authenticated firm_id if available
-  const effectiveFirmId = auth?.firmId ?? firm_id ?? DEMO_FIRM_ID;
+  if (firm_id && firm_id !== auth.firmId) {
+    return apiError("Unauthorized: firm mismatch", ErrorCode.UNAUTHORIZED, 403);
+  }
 
   const result = await createClientsAndTasks({
     clients,
-    firmId: effectiveFirmId,
+    firmId: auth.firmId,
     autoGenerateTasks: auto_generate_tasks,
     rules,
   });

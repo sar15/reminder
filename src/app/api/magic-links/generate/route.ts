@@ -19,7 +19,7 @@ export const POST = withErrorHandler(async (req: Request) => {
   const parsed = generateMagicLinkSchema.safeParse(body);
   if (!parsed.success) return apiValidationError(parsed.error);
 
-  const { client_id } = parsed.data;
+  const { client_id, task_id } = parsed.data;
   const supabase = createAdminClient();
 
   const { data: client, error } = await supabase
@@ -33,8 +33,20 @@ export const POST = withErrorHandler(async (req: Request) => {
     return apiError("Client not found", ErrorCode.NOT_FOUND, 404);
   }
 
+  const { data: task, error: taskError } = await supabase
+    .from("compliance_tasks")
+    .select("id, client_id, firm_id")
+    .eq("id", task_id)
+    .eq("client_id", client.id)
+    .eq("firm_id", auth.firmId)
+    .single();
+
+  if (taskError || !task) {
+    return apiError("Task not found", ErrorCode.NOT_FOUND, 404);
+  }
+
   try {
-    const link = await generateMagicLink(client.id, client.firm_id);
+    const link = await generateMagicLink(client.id, client.firm_id, task.id);
     return apiSuccess({ token: link.token, portal_url: link.url, expires_at: link.expires_at });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Failed to generate link";

@@ -53,7 +53,7 @@ Run migrations in order from `supabase/migrations/`. Schema is in `supabase/sche
 
 ## Deployment
 
-Deploys to Vercel. The `vercel.json` includes the cron schedule (`0 3 * * *` — 3 AM UTC / 8:30 AM IST... adjusted for IST offset in code).
+Deploys to Vercel. The `vercel.json` includes the cron schedule (`30 21 * * *` — 21:30 UTC / 3:00 AM IST).
 
 Set all environment variables in Vercel dashboard before deploying.
 

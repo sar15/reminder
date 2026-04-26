@@ -72,12 +72,13 @@ export const bulkClientSchema = z.object({
 export const sendReminderSchema = z.object({
   task_id: z.string().uuid("Invalid task ID"),
   cadence: z.enum(["T-7", "T-3", "T-1"]).default("T-3"),
-  channels: z.array(z.enum(["email", "whatsapp"])).min(1, "At least one channel required").default(["email"]),
+  channels: z.array(z.enum(["email"])).min(1, "At least one channel required").default(["email"]),
 });
 
 // ─── Magic link schema ───────────────────────────────────────
 export const generateMagicLinkSchema = z.object({
   client_id: z.string().uuid("Invalid client ID"),
+  task_id: z.string().uuid("Invalid task ID"),
 });
 
 // ─── Portal upload schema ────────────────────────────────────

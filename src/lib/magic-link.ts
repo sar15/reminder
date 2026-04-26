@@ -5,7 +5,7 @@
  * Rate limited: max 5 generations per client per hour.
  * Rate limit counts from audit_log (not from magic_links table, since we delete old links).
  */
-import { randomBytes } from "crypto";
+import { createHash, randomBytes } from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getPortalUrl } from "@/lib/url";
 
@@ -14,7 +14,8 @@ const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
 export async function generateMagicLink(
   clientId: string,
-  firmId: string
+  firmId: string,
+  taskId: string
 ): Promise<{ token: string; url: string; expires_at: string }> {
   const supabase = createAdminClient();
 
@@ -34,20 +35,25 @@ export async function generateMagicLink(
   }
 
   const token = randomBytes(32).toString("hex");
+  const token_hash = createHash("sha256").update(token).digest("hex");
   const expires_at = new Date(
     Date.now() + 7 * 24 * 60 * 60 * 1000
   ).toISOString();
 
-  // Delete any existing link for this client, then insert fresh
+  // Keep one active upload link per client/task. Store only the hash; the raw
+  // token exists only in the email URL.
   await supabase
     .from("client_magic_links")
     .delete()
-    .eq("client_id", clientId);
+    .eq("client_id", clientId)
+    .eq("task_id", taskId);
 
   const { error } = await supabase.from("client_magic_links").insert({
     client_id: clientId,
     firm_id: firmId,
-    token,
+    task_id: taskId,
+    token: token_hash,
+    token_hash,
     expires_at,
   });
 
@@ -55,7 +61,7 @@ export async function generateMagicLink(
 
   // Log to audit trail (immutable — this is what the rate limiter counts)
   await supabase.from("audit_log").insert({
-    task_id:    null,  // no task context for magic link generation
+    task_id:    taskId,
     firm_id:    firmId,
     client_id:  clientId,
     action:     "magic_link_generated",
@@ -69,11 +75,14 @@ export async function generateMagicLink(
 
 export async function validateMagicLink(token: string) {
   const supabase = createAdminClient();
+  const tokenHash = createHash("sha256").update(token).digest("hex");
   const { data, error } = await supabase
     .from("client_magic_links")
     .select("*, clients(*)")
-    .eq("token", token)
+    .eq("token_hash", tokenHash)
     .gt("expires_at", new Date().toISOString())
+    .not("task_id", "is", null)
+    .is("used_at", null)
     .single();
 
   if (error || !data) return null;

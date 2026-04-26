@@ -8,6 +8,7 @@
  * - Emails CA firm partner (with retry)
  */
 import { createAdminClient } from "@/lib/supabase/admin";
+import { validateMagicLink } from "@/lib/magic-link";
 import { formatComplianceType } from "@/lib/utils";
 import { buildCANotificationEmail } from "@/lib/reminder-dispatch";
 import { withRetry, isTransientError } from "@/lib/retry";
@@ -72,15 +73,12 @@ export async function POST(req: Request) {
     const supabase = createAdminClient();
 
     // 1. Validate magic link token
-    const { data: link, error: linkErr } = await supabase
-      .from("client_magic_links")
-      .select("*, clients(*)")
-      .eq("token", token)
-      .gt("expires_at", new Date().toISOString())
-      .single();
-
-    if (linkErr || !link) {
+    const link = await validateMagicLink(token);
+    if (!link) {
       return apiError("Invalid or expired link", ErrorCode.EXPIRED_TOKEN, 401);
+    }
+    if (!link.task_id) {
+      return apiError("Invalid upload link", ErrorCode.EXPIRED_TOKEN, 401);
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -91,6 +89,7 @@ export async function POST(req: Request) {
       .from("compliance_tasks")
       .select("*")
       .eq("id", taskId)
+      .eq("id", link.task_id)
       .eq("client_id", client.id)
       .single();
 
@@ -103,7 +102,7 @@ export async function POST(req: Request) {
 
     for (const file of files) {
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-      const path     = `${client.id}/${taskId}/${Date.now()}_${safeName}`;
+      const path     = `${task.firm_id}/${client.id}/${taskId}/${Date.now()}_${safeName}`;
       const buffer   = Buffer.from(await file.arrayBuffer());
 
       const { error: uploadErr } = await supabase.storage
@@ -156,6 +155,11 @@ export async function POST(req: Request) {
         uploaded_by: "client_portal",
       },
     });
+
+    await supabase
+      .from("client_magic_links")
+      .update({ used_at: new Date().toISOString() })
+      .eq("id", link.id);
 
     // 7. Email CA firm partner (with retry — non-blocking failure)
     if (resend) {

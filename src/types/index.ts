@@ -28,7 +28,7 @@ export type TaskStatus =
 
 export type UserRole = "partner" | "senior" | "junior";
 export type Plan = "starter" | "growth" | "professional" | "enterprise";
-export type Channel = "email" | "whatsapp" | "sms";
+export type Channel = "email" | "sms";
 export type Language = "en" | "hi" | "gu" | "mr" | "ta";
 
 export type AuditAction =

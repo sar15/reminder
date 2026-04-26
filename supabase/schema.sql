@@ -78,7 +78,7 @@ create table audit_log (
   firm_id uuid references firms(id) on delete cascade not null,
   client_id uuid references clients(id) on delete cascade not null,
   action text not null, -- reminder_sent | delivered | opened | doc_uploaded | filed | escalated
-  channel text, -- email | whatsapp | sms
+  channel text, -- email | sms
   message_id text, -- provider message ID for delivery tracking
   metadata jsonb, -- extra data: template used, file name, etc.
   performed_by uuid references users(id),
@@ -111,7 +111,7 @@ create table reminder_templates (
   id uuid primary key default uuid_generate_v4(),
   firm_id uuid references firms(id) on delete cascade,
   cadence text not null, -- T-10 | T-7 | T-3 | T-1 | T0 | T+1 | T+3
-  channel text not null, -- email | whatsapp
+  channel text not null, -- email
   language text not null default 'en',
   subject text, -- email subject
   body text not null,
@@ -126,7 +126,7 @@ create table reminder_rules (
   firm_id uuid references firms(id) on delete cascade not null,
   cadence text not null, -- T-15 | T-10 | T-7 | T-3 | T-1 | T+1 | T+3
   offset_days int not null, -- 15 | 10 | 7 | 3 | 1 | -1 | -3
-  channels text[] not null default '{}', -- email | whatsapp
+  channels text[] not null default '{}', -- email
   enabled boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -154,9 +154,33 @@ create table client_magic_links (
   id uuid primary key default uuid_generate_v4(),
   client_id uuid references clients(id) on delete cascade not null,
   firm_id uuid references firms(id) on delete cascade not null,
-  token text unique not null,
+  task_id uuid references compliance_tasks(id) on delete cascade,
+  token text unique not null, -- legacy field stores token hash; raw token is never stored
+  token_hash text unique not null,
   expires_at timestamptz not null,
+  used_at timestamptz,
   created_at timestamptz not null default now()
+);
+
+-- ============================================================
+-- REMINDER_JOBS — durable, idempotent reminder send queue
+-- ============================================================
+create table reminder_jobs (
+  id uuid primary key default uuid_generate_v4(),
+  firm_id uuid references firms(id) on delete cascade not null,
+  client_id uuid references clients(id) on delete cascade not null,
+  task_id uuid references compliance_tasks(id) on delete cascade not null,
+  cadence text not null,
+  channel text not null default 'email',
+  status text not null default 'pending',
+  scheduled_for date not null,
+  attempts int not null default 0,
+  last_error text,
+  provider_message_id text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  sent_at timestamptz,
+  unique (task_id, cadence, channel)
 );
 
 -- ============================================================

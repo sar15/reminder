@@ -50,7 +50,7 @@ export default async function PortalPage({
   } else {
     // Real token — validate against DB
     const link = await validateMagicLink(token).catch(() => null);
-    if (link) {
+    if (link?.task_id) {
       client = link.clients;
       try {
         const { createAdminClient } = await import("@/lib/supabase/admin");
@@ -58,9 +58,10 @@ export default async function PortalPage({
         const { data } = await supabase
           .from("compliance_tasks")
           .select("*")
+          .eq("id", link.task_id)
           .eq("client_id", client.id)
           .neq("status", "filed")
-          .order("due_date");
+          .limit(1);
         tasks = data ?? [];
       } catch {
         tasks = [];

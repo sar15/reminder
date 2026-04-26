@@ -277,13 +277,34 @@ export async function sendTaskReminder({
     } else if (!resend) {
       results.email = { success: false, skipped: true, error: "RESEND_API_KEY not set" };
     } else {
-      // Generate fresh magic link for this reminder
-      let portalUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/portal/demo`;
+      // Generate a fresh magic link for this reminder. If this fails, do not send
+      // a reminder with a broken or demo portal URL.
+      let portalUrl: string;
       try {
-        const link = await generateMagicLink(client.id, task.firm_id);
+        const link = await generateMagicLink(client.id, task.firm_id, task.id);
         portalUrl = link.url;
-      } catch {
-        // non-fatal — still send email without portal link
+      } catch (linkError: unknown) {
+        const errMsg = linkError instanceof Error
+          ? linkError.message
+          : "Failed to generate secure portal link";
+
+        results.email = { success: false, error: errMsg };
+        await supabase.from("audit_log").insert({
+          task_id: task.id,
+          firm_id: task.firm_id,
+          client_id: task.client_id,
+          action: "reminder_failed",
+          channel: "email",
+          message_id: null,
+          metadata: {
+            cadence,
+            automated,
+            to: client.email,
+            error: errMsg,
+            stage: "magic_link_generation",
+          },
+        });
+        return { success: false, results };
       }
 
       const { subject, html } = buildReminderEmail({ client, task, cadence, portalUrl });
@@ -392,7 +413,6 @@ export function getEligibleChannels({
 }) {
   return channels.filter((ch) => {
     if (ch === "email" && !client.email) return false;
-    if (ch === "whatsapp" && !client.phone) return false;
     return !cadenceAlreadySent(existingLogs, taskId, cadence, ch);
   });
 }

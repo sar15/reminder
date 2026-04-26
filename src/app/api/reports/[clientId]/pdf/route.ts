@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getAuthenticatedUser } from "@/lib/auth";
 import { apiError, ErrorCode } from "@/lib/api-response";
 import { z } from "zod";
 
@@ -9,6 +10,11 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ clientId: string }> }
 ) {
+  const auth = await getAuthenticatedUser();
+  if (!auth) {
+    return apiError("Unauthorized", ErrorCode.UNAUTHORIZED, 401);
+  }
+
   const { clientId } = await params;
   const parsed = paramsSchema.safeParse({ clientId });
   if (!parsed.success) {
@@ -18,7 +24,12 @@ export async function GET(
   const supabase = createAdminClient();
 
   // Fetch client first to get firm_id for the firm query
-  const { data: client } = await supabase.from("clients").select("*").eq("id", clientId).single();
+  const { data: client } = await supabase
+    .from("clients")
+    .select("*")
+    .eq("id", clientId)
+    .eq("firm_id", auth.firmId)
+    .single();
 
   const [
     { data: tasks },

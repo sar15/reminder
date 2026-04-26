@@ -1,6 +1,6 @@
 import type { Channel } from "@/types";
 
-export type ReminderChannel = Extract<Channel, "email" | "whatsapp">;
+export type ReminderChannel = Extract<Channel, "email">;
 export type ReminderCadence = "T-7" | "T-3" | "T-1";
 
 export interface ReminderRule {
@@ -29,7 +29,7 @@ function normalizeChannels(channels: unknown): ReminderChannel[] {
   return Array.from(
     new Set(
       channels.filter(
-        (c): c is ReminderChannel => c === "email" || c === "whatsapp"
+        (c): c is ReminderChannel => c === "email"
       )
     )
   );
