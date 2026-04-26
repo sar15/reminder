@@ -1,88 +1,63 @@
-# CA Compliance Shield
+# DeadlineShield
 
-> Compliance Risk Mitigation Platform for Indian CA Firms.
-> Timestamped, court-admissible proof of every client communication.
+Compliance management platform for Indian CA firms. Automated reminders, zero-login client document uploads, and court-admissible audit trails.
 
-## What This Is
+## Stack
 
-Not a "due date reminder." A **Compliance Control Layer** that:
-- Sends personalized 1-to-1 email + WhatsApp reminders (never CC'd)
-- Logs every send/delivery/open in an **immutable audit trail**
-- Generates a **Liability Report PDF** — court-admissible proof when clients blame you for penalties
-- Gives clients a **magic link portal** to upload documents (no login needed)
-- Shows a **Risk Heatmap** dashboard (Red/Yellow/Green) sorted by deadline proximity
+- **Framework** — Next.js 15 (App Router)
+- **Database / Auth** — Supabase (Postgres + RLS)
+- **Email** — Resend
+- **PDF** — @react-pdf/renderer
+- **Validation** — Zod
+- **Styling** — Tailwind CSS + inline styles
 
-## Tech Stack
+## Features
 
-| Layer | Tool |
-|---|---|
-| Frontend + Backend | Next.js 15 (App Router, Server Actions) |
-| Database + Auth | Supabase (PostgreSQL + magic link auth) |
-| Email | Resend (free: 3,000/mo) |
-| WhatsApp | Cleomitra / Interakt (add after first paying customer) |
-| Hosting | Vercel (free tier) |
-| Styling | Tailwind CSS v4 |
+- Excel/CSV bulk client import with auto task generation
+- Daily cron (3 AM IST) fires T-7, T-3, T-1 email reminders automatically
+- Magic link portal — clients upload documents without login
+- Task status machine: `pending → waiting_docs → docs_received → filed`
+- Immutable audit trail + one-click PDF liability report
+- Full multi-tenant isolation via Supabase RLS
 
-**Total MVP cost: Rs.1,050/month. Profitable with 1 paying customer at Rs.1,499/mo.**
+## Local Setup
 
-## How to Run
-
-### Step 1: Supabase Setup
-1. Create a project at [supabase.com](https://supabase.com)
-2. Go to SQL Editor → paste and run `supabase/schema.sql`
-3. Copy your Project URL and anon key
-
-### Step 2: Resend Setup
-1. Sign up at [resend.com](https://resend.com)
-2. Create an API key
-
-### Step 3: Environment Variables
-```bash
-cp .env.local .env.local
-# Fill in:
-# NEXT_PUBLIC_SUPABASE_URL=
-# NEXT_PUBLIC_SUPABASE_ANON_KEY=
-# SUPABASE_SERVICE_ROLE_KEY=
-# RESEND_API_KEY=
-```
-
-### Step 4: Install & Run
 ```bash
 npm install
-npm run dev
-# → http://localhost:3000
 ```
 
-## Key Screens
+Copy the environment template and fill in your values:
 
-| Route | What it does |
-|---|---|
-| `/dashboard` | Risk Heatmap — all clients Red/Yellow/Green |
-| `/dashboard/clients` | Client list |
-| `/dashboard/clients/new` | Add client with compliance types |
-| `/dashboard/clients/[id]` | Client detail + audit trail |
-| `/dashboard/clients/[id]/remind` | Send personalized reminder (logged) |
-| `/dashboard/tasks` | All tasks sorted by deadline proximity |
-| `/dashboard/reports` | Liability Reports list |
-| `/dashboard/reports/[id]` | Full audit timeline + PDF download |
-| `/portal/[token]` | Client magic link portal (no login) |
+```bash
+cp .env.example .env.local
+```
 
-## The Liability Report
+```bash
+npm run dev
+```
 
-The single most important feature. At the end of every compliance cycle, generate a PDF showing:
-- Every reminder sent (timestamp + message ID)
-- Delivery and open status
-- When documents were uploaded
-- When the return was filed
-- Clear conclusion: was the delay caused by client inaction?
+## Environment Variables
 
-Use it to defend against ICAI complaints, client disputes, and penalty claims.
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `NEXT_PUBLIC_SUPABASE_URL` | ✅ | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ | Supabase anon key |
+| `SUPABASE_SERVICE_ROLE_KEY` | ✅ | Supabase service role key (server only) |
+| `RESEND_API_KEY` | ✅ | Resend API key for email |
+| `CRON_SECRET` | ✅ | Secret for protecting the cron endpoint |
+| `NEXT_PUBLIC_APP_URL` | ✅ | Your deployed app URL |
 
-## Pricing Tiers
+## Database
 
-| Tier | Price | Clients |
-|---|---|---|
-| Starter | Free | 5 |
-| Growth | Rs.999/mo | 25 |
-| Professional | Rs.2,499/mo | 75 |
-| Enterprise | Rs.4,999/mo | Unlimited |
+Run migrations in order from `supabase/migrations/`. Schema is in `supabase/schema.sql`.
+
+## Deployment
+
+Deploys to Vercel. The `vercel.json` includes the cron schedule (`0 3 * * *` — 3 AM UTC / 8:30 AM IST... adjusted for IST offset in code).
+
+Set all environment variables in Vercel dashboard before deploying.
+
+## Demo
+
+Visit `/dashboard/demo` for a no-auth demo with mock data.  
+Client portal demos: `/portal/demo-sharma`, `/portal/demo-patel`

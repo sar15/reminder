@@ -22,9 +22,13 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# local env files
-.env*.local
+# env — NEVER commit these
 .env
+.env.local
+.env*.local
+.env.development
+.env.production
+.env.staging
 
 # vercel
 .vercel
@@ -33,6 +37,11 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# research docs (keep local only)
+# local research / design files — keep off public repo
 *.pdf
 *.docx
+design.html
+Qwen_html_*.html
+ARCHITECTURE.md
+CA_SIDE_COMPLETE.md
+ONBOARDING_GUIDE.md

@@ -1,41 +1,44 @@
-import { NextRequest, NextResponse } from "next/server";
+import { generateMagicLink } from "@/lib/magic-link";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { randomBytes } from "crypto";
+import { getAuthenticatedUser } from "@/lib/auth";
+import { generateMagicLinkSchema } from "@/lib/validations";
+import { apiSuccess, apiError, apiValidationError, ErrorCode, withErrorHandler } from "@/lib/api-response";
 
-export async function POST(req: NextRequest) {
-  try {
-    const { client_id } = await req.json();
-    if (!client_id) return NextResponse.json({ error: "client_id required" }, { status: 400 });
-
-    const supabase = createAdminClient();
-
-    // Get client + firm
-    const { data: client, error } = await supabase
-      .from("clients")
-      .select("id, firm_id, name, email")
-      .eq("id", client_id)
-      .single();
-
-    if (error || !client) return NextResponse.json({ error: "Client not found" }, { status: 404 });
-
-    // Generate secure token
-    const token = randomBytes(32).toString("hex");
-    const expires_at = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7 days
-
-    // Upsert — one active link per client
-    await supabase.from("client_magic_links").delete().eq("client_id", client_id);
-    await supabase.from("client_magic_links").insert({
-      client_id,
-      firm_id: client.firm_id,
-      token,
-      expires_at,
-    });
-
-    const portalUrl = `${process.env.NEXT_PUBLIC_APP_URL}/portal/${token}`;
-
-    return NextResponse.json({ success: true, token, portal_url: portalUrl, expires_at });
-
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+/**
+ * POST /api/magic-links/generate
+ * Requires auth — verifies client belongs to the authenticated firm.
+ * Rate limited: max 5 per client per hour.
+ */
+export const POST = withErrorHandler(async (req: Request) => {
+  const auth = await getAuthenticatedUser();
+  if (!auth) {
+    return apiError("Unauthorized", ErrorCode.UNAUTHORIZED, 401);
   }
-}
+
+  const body = await req.json();
+  const parsed = generateMagicLinkSchema.safeParse(body);
+  if (!parsed.success) return apiValidationError(parsed.error);
+
+  const { client_id } = parsed.data;
+  const supabase = createAdminClient();
+
+  const { data: client, error } = await supabase
+    .from("clients")
+    .select("id, firm_id, name")
+    .eq("id", client_id)
+    .eq("firm_id", auth.firmId)   // ← firm isolation
+    .single();
+
+  if (error || !client) {
+    return apiError("Client not found", ErrorCode.NOT_FOUND, 404);
+  }
+
+  try {
+    const link = await generateMagicLink(client.id, client.firm_id);
+    return apiSuccess({ token: link.token, portal_url: link.url, expires_at: link.expires_at });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Failed to generate link";
+    if (msg.includes("Rate limit")) return apiError(msg, ErrorCode.RATE_LIMITED, 429);
+    return apiError(msg, ErrorCode.INTERNAL_ERROR, 500);
+  }
+});

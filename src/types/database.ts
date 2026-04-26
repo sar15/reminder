@@ -1,4 +1,3 @@
-Initialising login role...
 export type Json =
   | string
   | number
@@ -50,7 +49,7 @@ export type Database = {
           message_id: string | null
           metadata: Json | null
           performed_by: string | null
-          task_id: string
+          task_id: string | null
           timestamp: string
         }
         Insert: {
@@ -62,7 +61,7 @@ export type Database = {
           message_id?: string | null
           metadata?: Json | null
           performed_by?: string | null
-          task_id: string
+          task_id?: string | null
           timestamp?: string
         }
         Update: {
@@ -74,7 +73,7 @@ export type Database = {
           message_id?: string | null
           metadata?: Json | null
           performed_by?: string | null
-          task_id?: string
+          task_id?: string | null
           timestamp?: string
         }
         Relationships: [
@@ -303,6 +302,33 @@ export type Database = {
           },
         ]
       }
+      cron_executions: {
+        Row: {
+          completed_at: string | null
+          execution_date: string
+          id: string
+          started_at: string
+          status: string
+          summary: Json | null
+        }
+        Insert: {
+          completed_at?: string | null
+          execution_date: string
+          id?: string
+          started_at?: string
+          status?: string
+          summary?: Json | null
+        }
+        Update: {
+          completed_at?: string | null
+          execution_date?: string
+          id?: string
+          started_at?: string
+          status?: string
+          summary?: Json | null
+        }
+        Relationships: []
+      }
       documents: {
         Row: {
           client_id: string
@@ -393,6 +419,47 @@ export type Database = {
           plan?: string
         }
         Relationships: []
+      }
+      reminder_rules: {
+        Row: {
+          cadence: string
+          channels: string[]
+          created_at: string
+          enabled: boolean
+          firm_id: string
+          id: string
+          offset_days: number
+          updated_at: string
+        }
+        Insert: {
+          cadence: string
+          channels?: string[]
+          created_at?: string
+          enabled?: boolean
+          firm_id: string
+          id?: string
+          offset_days: number
+          updated_at?: string
+        }
+        Update: {
+          cadence?: string
+          channels?: string[]
+          created_at?: string
+          enabled?: boolean
+          firm_id?: string
+          id?: string
+          offset_days?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reminder_rules_firm_id_fkey"
+            columns: ["firm_id"]
+            isOneToOne: false
+            referencedRelation: "firms"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       reminder_templates: {
         Row: {

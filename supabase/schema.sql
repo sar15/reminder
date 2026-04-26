@@ -119,6 +119,21 @@ create table reminder_templates (
 );
 
 -- ============================================================
+-- REMINDER_RULES — Per-firm automation cadence settings
+-- ============================================================
+create table reminder_rules (
+  id uuid primary key default uuid_generate_v4(),
+  firm_id uuid references firms(id) on delete cascade not null,
+  cadence text not null, -- T-15 | T-10 | T-7 | T-3 | T-1 | T+1 | T+3
+  offset_days int not null, -- 15 | 10 | 7 | 3 | 1 | -1 | -3
+  channels text[] not null default '{}', -- email | whatsapp
+  enabled boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (firm_id, cadence)
+);
+
+-- ============================================================
 -- COMPLIANCE_CALENDAR — Master calendar with auto-update tracking
 -- ============================================================
 create table compliance_calendar (
@@ -154,6 +169,7 @@ alter table compliance_tasks enable row level security;
 alter table audit_log enable row level security;
 alter table documents enable row level security;
 alter table reminder_templates enable row level security;
+alter table reminder_rules enable row level security;
 
 -- Users can only see their own firm's data
 create policy "firm_isolation" on clients
@@ -174,6 +190,14 @@ create policy "firm_isolation" on audit_log
 -- audit_log: only insert allowed (no update/delete via RLS either)
 create policy "audit_log_insert" on audit_log
   for insert with check (
+    firm_id = (select firm_id from users where id = auth.uid())
+  );
+
+create policy "reminder_rules_firm" on reminder_rules
+  for all using (
+    firm_id = (select firm_id from users where id = auth.uid())
+  )
+  with check (
     firm_id = (select firm_id from users where id = auth.uid())
   );
 
